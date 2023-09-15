@@ -4,6 +4,14 @@ import streamlit as st
 
 st.title('SURVEY DATA ANALYSIS')
 
+# To link to Data Model Sample Excel file
+data_model_sample_url = 'https://docs.google.com/spreadsheets/d/19ymgAkEUgvux6z7ykWHnlmtfwu0h3iMa/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
+st.write(f'[Data Model Sample file download]({data_model_sample_url})')
+
+# To link to Survey Data Sample Excel file
+data_sample_url = 'https://docs.google.com/spreadsheets/d/1A-hKivtLFUJeOpLolfKy5Pd_rUDfsPY1/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
+st.write(f'[Survey Data Sample file download]({data_sample_url})')
+
 # Upload DATA MODEL Excel file
 data_model_name = st.sidebar.file_uploader("Upload DATA MODEL Excel file", type=["xlsx", "xls"])
 if data_model_name is not None:
@@ -151,6 +159,11 @@ if data_model_name is not None:
         st.write(regression_results)
 
 
+    st.write('And more ... Only 1 minute to convert Youtube video to slides!')
+    st.write('https://htvinh-youtube2slides-streamlit-app-k14x3w.streamlitapp.com/')
+    st.write('\n')
+
+    st.write('See you next time ! == ho.tuong.vinh@gmail.com ==')
 
 
 

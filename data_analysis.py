@@ -8,7 +8,7 @@ import statsmodels.api as sm
 from sklearn.preprocessing import LabelEncoder
 
 
-output_path = './'
+output_path = './output/'
 
 def read_excel_to_dict(excel_path):
     # Read the Excel workbook
