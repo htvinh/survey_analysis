@@ -4,6 +4,12 @@ import streamlit as st
 
 st.title('SURVEY DATA ANALYSIS')
 
+st.write('Download these 2 sample files to prepare your files.')
+st.write('Need only to adapt the Data Model according to your survey structure.')
+st.write('Attention: the column column index for "col_index" begins at 0.')
+st.write('For the survey data, only need to download as Excel from Google Docs.')
+
+
 # To link to Data Model Sample Excel file
 data_model_sample_url = 'https://docs.google.com/spreadsheets/d/19ymgAkEUgvux6z7ykWHnlmtfwu0h3iMa/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
 st.write(f'[Data Model Sample file download]({data_model_sample_url})')
