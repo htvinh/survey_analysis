@@ -8,6 +8,7 @@ st.write('Download these 2 sample files to prepare your files.')
 st.write('Need only to adapt the Data Model according to your survey structure.')
 st.write('Attention: the column column index for "col_index" begins at 0.')
 st.write('For the survey data, only need to download as Excel from Google Docs.')
+st.write('Contact: ho.tuong.vinh@gmail.com')
 
 
 # To link to Data Model Sample Excel file
