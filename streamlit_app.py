@@ -12,12 +12,13 @@ st.write('Contact: ho.tuong.vinh@gmail.com')
 
 
 # To link to Data Model Sample Excel file
-data_model_sample_url = 'https://docs.google.com/spreadsheets/d/19ymgAkEUgvux6z7ykWHnlmtfwu0h3iMa/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
+data_model_sample_url = 'https://docs.google.com/spreadsheets/d/19ymgAkEUgvux6z7ykWHnlmtfwu0h3iMa/edit?usp=drive_link&ouid=103775647130982487748&rtpof=true&sd=true'
 st.write(f'[Data Model Sample file download]({data_model_sample_url})')
 
 # To link to Survey Data Sample Excel file
 data_sample_url = 'https://docs.google.com/spreadsheets/d/1A-hKivtLFUJeOpLolfKy5Pd_rUDfsPY1/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
 st.write(f'[Survey Data Sample file download]({data_sample_url})')
+
 
 # Upload DATA MODEL Excel file
 data_model_name = st.sidebar.file_uploader("Upload DATA MODEL Excel file", type=["xlsx", "xls"])
