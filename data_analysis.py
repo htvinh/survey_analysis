@@ -7,8 +7,14 @@ import seaborn as sns
 import statsmodels.api as sm
 from sklearn.preprocessing import LabelEncoder
 
+import os
 
 output_path = './output/'
+# Check if the directory exists
+if not os.path.exists(output_path):
+    # If it doesn't exist, create the directory
+    os.makedirs(output_path)
+    print(f"Directory '{output_path}' created.")
 
 def read_excel_to_dict(excel_path):
     # Read the Excel workbook
