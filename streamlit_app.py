@@ -106,6 +106,14 @@ if data_model_name is not None:
         demographic_stats_table = compute_selected_cols_statistics(data, selected_cols_names, output_file_name)
         
         st.header('Statistics of Demographic Columns')
+        # Create a download button for the Excel file
+        filename = 'Demographic_Stats.xlsx'
+        st.download_button(
+            label="Download Statistics of Demographic Columns Excel File",
+            file_name = filename,
+            data=open(f'./output/{filename}', 'rb').read(),
+            key='excel-download-button-dem'
+        )
         st.write(demographic_stats_table)
         print('\nCreate a statistics table for Demographic Columns!  Done')
 
@@ -114,6 +122,16 @@ if data_model_name is not None:
         output_file_name = 'Independent'
         independent_stats_table = compute_selected_cols_statistics(data, selected_cols_names, output_file_name)
         st.header('Statistics of Independent Columns')
+
+        # Create a download button for the Excel file
+        filename = 'Independent_Stats.xlsx'
+        st.download_button(
+            label="Download Statistics of Independent Columns Excel File",
+            file_name = filename,
+            data=open(f'./output/{filename}', 'rb').read(),
+            key='excel-download-button-ind'
+        )
+
         st.write(independent_stats_table)
         print('\nCreate a statistics table for Independent Columns!  Done')
 
@@ -122,6 +140,16 @@ if data_model_name is not None:
         output_file_name = 'Target'
         target_stats_table = compute_selected_cols_statistics(data, selected_cols_names, output_file_name)
         st.header('Statistics of Target Columns')
+
+        # Create a download button for the Excel file
+        filename = 'Target_Stats.xlsx'
+        st.download_button(
+            label="Download Statistics of Target Columns Excel File",
+            file_name = filename,
+            data=open(f'./output/{filename}', 'rb').read(),
+            key='excel-download-button-taget'
+        )
+
         st.write(target_stats_table)
         print('\nCreate a statistics table for Target Columns!  Done')
 
@@ -142,23 +170,51 @@ if data_model_name is not None:
         num_factors = 5
         efa_results = do_efa_analysis(selected_data, num_factors)
         st.header('EFA analysis')
+
+        # Create a download button for the Excel file
+        filename = 'EFA_Analysis.xlsx'
+        st.download_button(
+            label="Download EFA Analysis Results Excel File",
+            file_name = filename,
+            data=open(f'./output/{filename}', 'rb').read(),
+            key='excel-download-button-efa'
+        )
+
         st.write(efa_results)
         print('\nEFA analysis.   Done')
 
         # Compute Correclation Matrix
         correlation_table = compute_correlation(selected_data)
         st.header('Corellation Analsyis By Pearson Method')
+
+        # Create a download button for the Excel file
+        filename = 'Correlation_Table.xlsx'
+        st.download_button(
+            label="Download Correlation Matrix Excel File",
+            file_name = filename,
+            data=open(f'./output/{filename}', 'rb').read(),
+            key='excel-download-button-cor'
+        )
         st.write(correlation_table)
         print('\Correlation analysis.   Done')
 
         # Make Multivarate Regression Analysis
-        st.header('Multivarate Regression Analysis')
+        st.header('Multivariate Regression Analysis')
         target_data = extract_selected_colums_data(data, [target_cols_names[0]])
         variable_data = independent_data
         regression_results = do_multivariate_regression_analysis(target_data, variable_data)
+
+        # Create a download button for the Excel file
+        filename = 'Multivariate_Regression_Summary.docx'
+        st.download_button(
+            label="Download Multivariate Regression Analysis Report Docx File",
+            file_name = filename,
+            data=open(f'./output/{filename}', 'rb').read(),
+            key='excel-download-button-reg'
+        )
         st.write(regression_results)
 
-
+    st.write('\n==============================================================================\n')
     st.write('And more ... Only 1 minute to convert Youtube video to slides!')
     st.write('https://htvinh-youtube2slides-streamlit-app-k14x3w.streamlitapp.com/')
     st.write('\n')
