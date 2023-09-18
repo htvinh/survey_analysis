@@ -97,6 +97,7 @@ def compute_selected_cols_statistics(df, selected_cols_names, output_file_name):
 
     return stats_table
 
+
 # Convert the data in a nested dict into a dictionary of DataFrames
 def convert_to_dataframe(table):
     dfs = {}

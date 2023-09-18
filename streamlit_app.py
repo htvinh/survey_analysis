@@ -1,6 +1,8 @@
 from data_analysis import *
 
 import streamlit as st
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 st.title('SURVEY DATA ANALYSIS')
 
@@ -9,6 +11,23 @@ st.write('Need only to adapt the Data Model according to your survey structure.'
 st.write('Attention: the column column index for "col_index" begins at 0.')
 st.write('For the survey data, only need to download as Excel from Google Docs.')
 st.write('Contact: ho.tuong.vinh@gmail.com')
+
+
+def visualize_stats_table(stats_table):
+    for col_name, stats_df in stats_table.items():
+        st.write(f'### Percentage Distribution (%) for {col_name}')
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.barplot(x=stats_df.index, y=stats_df['Percent'], ax=ax)
+
+        # Annotate each bar with the respective frequency value
+        for i, v in enumerate(stats_df['Percent']):
+            ax.text(i, v/2, str(v), ha='center', va='center')
+
+        plt.title(f'Percentage Distribution for {col_name}', fontsize=14)
+        plt.xlabel(col_name)
+        plt.ylabel('Percentage (%)')
+        plt.xticks(rotation=30, ha='right')
+        st.pyplot(fig)
 
 
 # To link to Data Model Sample Excel file
@@ -123,6 +142,9 @@ if data_model_name is not None:
             key='excel-download-button-dem'
         )
         st.write(demographic_stats_table)
+        # Visualize
+        visualize_stats_table(demographic_stats_table)
+
         print('\nCreate a statistics table for Demographic Columns!  Done')
 
         # Create statistic table for independent_cols
@@ -141,6 +163,8 @@ if data_model_name is not None:
         )
 
         st.write(independent_stats_table)
+        # Visualize
+        visualize_stats_table(independent_stats_table)
         print('\nCreate a statistics table for Independent Columns!  Done')
 
         # Create statistic table for target_cols
@@ -159,6 +183,7 @@ if data_model_name is not None:
         )
 
         st.write(target_stats_table)
+        visualize_stats_table(target_stats_table)
         print('\nCreate a statistics table for Target Columns!  Done')
 
         # Extract data for Indendent Columns
