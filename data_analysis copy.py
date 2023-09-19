@@ -124,8 +124,7 @@ def save_to_excel(filename, table):
 # Extract data for selected columns
 def extract_selected_colums_data(df, selected_cols_names):
     data_to_extract = df[selected_cols_names]
-    # data_to_extract = convert_values_to_numeric(data_to_extract)
-    data_to_extract = convert_likert_to_numerical(data_to_extract, extended_likert_mapping_all_languages)
+    data_to_extract = convert_values_to_numeric(data_to_extract)
     return data_to_extract
 
 # Convert values of dataframe to numeric
@@ -137,58 +136,6 @@ def convert_values_to_numeric(df):
     for column in df.columns:
         df[column] = label_encoder.fit_transform(df[column])
     return df
-
-# Function to manually convert Likert-scale responses to numerical values
-# Function to manually convert Likert-scale responses to numerical values
-def convert_likert_to_numerical(df, likert_mapping):
-    df_numerical = df.copy()
-    # Truncate leading and trailing spaces for consistent mapping
-    # df_numerical = df_numerical.applymap(str.strip)
-    # Convert all columns to string type for consistent mapping
-    df_numerical = df_numerical.astype(str)
-    # Convert the mapping keys to string type as well
-    str_likert_mapping = {str(key): value for key, value in likert_mapping.items()}
-    
-    for column in df.columns:
-        df_numerical[column] = df_numerical[column].map(str_likert_mapping)
-        
-    # Check for any remaining non-numeric values
-    if df_numerical.applymap(np.isreal).all().all() == False:
-        raise AssertionError("Not all columns are numeric after mapping. Check your mapping and DataFrame.")
-        
-    return df_numerical
-
-
-
-
-# Sample Likert scale mapping (you can adjust this based on your actual survey Likert scale)
-extended_likert_mapping_all_languages = {
-    # English Labels
-    'Strongly Disagree': 1,
-    'Disagree': 2,
-    'Neutral': 4,
-    'Agree': 6,
-    'Strongly Agree': 7,
-    
-    # Vietnamese Labels
-    'Hoàn toàn không đồng ý': 1,
-    'Không đồng ý': 2,
-    'Không ý kiến': 4,
-    'Đồng ý': 6,
-    'Hoàn toàn đồng ý': 7,
-    
-    # Numerical Levels
-    1: 1,
-    2: 2,
-    3: 3,
-    4: 4,
-    5: 5,
-    6: 6,
-    7: 7
-}
-
-
-
 
 # Remove data points (rows) with missing data related to selected columns
 def remove_rows_with_missing_data_related_to_selected_cols(df, selected_cols_names):

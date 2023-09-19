@@ -145,7 +145,7 @@ if data_model_name is not None:
         with st.expander("To display"):
             st.write(demographic_stats_table)
         # Visualize
-        visualize_stats_table(demographic_stats_table)
+        # visualize_stats_table(demographic_stats_table)
 
         print('\nCreate a statistics table for Demographic Columns!  Done')
 
@@ -167,7 +167,7 @@ if data_model_name is not None:
             st.write(independent_stats_table)
         # st.write(independent_stats_table)
         # Visualize
-        visualize_stats_table(independent_stats_table)
+        # visualize_stats_table(independent_stats_table)
         print('\nCreate a statistics table for Independent Columns!  Done')
 
         # Create statistic table for target_cols
@@ -187,14 +187,13 @@ if data_model_name is not None:
         with st.expander("To display"):
             st.write(target_stats_table)
         # st.write(target_stats_table)
-        visualize_stats_table(target_stats_table)
+        # visualize_stats_table(target_stats_table)
         print('\nCreate a statistics table for Target Columns!  Done')
 
         # Extract data for Indendent Columns
         selected_cols_names = independent_cols_names
-        # st.write(independent_cols_names)
         independent_data = extract_selected_colums_data(data, selected_cols_names)
-        # st.write(independent_data)
+        print(independent_data)
         print('\nExtract Independent Data.   Done\n')
 
         st.header("Testing the reliability of the scale using Cronbach's alpha for independent columns")
