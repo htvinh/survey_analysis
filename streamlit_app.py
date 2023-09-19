@@ -235,13 +235,13 @@ if data_model_name is not None:
         print(efa_interpretation_df)
         st.write("### Simple Interpretation")
         for index, row in efa_interpretation_df.iterrows():
-            st.write(f"**{index+1} {row['Factor']}**: {row['Interpretation']}")
+            st.write(f"**{index+1}. {row['Factor']}**: {row['Interpretation']}")
 
         # Recommendation
         recommendation_df = recommendations_based_on_loadings(efa_results, threshold=0.5)
         st.write("### Recommendations")
         for index, row in recommendation_df.iterrows():
-            st.write(f"**{index+1} {row['Factor']}**: {row['Recommendation']}")
+            st.write(f"**{index+1}. {row['Factor']}**: {row['Recommendation']}")
 
         # Compute Correclation Matrix
         correlation_table = compute_correlation(selected_data)
@@ -262,11 +262,11 @@ if data_model_name is not None:
         corr_interpretation_df, corr_recommendation_df = interpret_and_recommend_correlation(correlation_table, threshold=0.5)
         st.write("### Correlation Interpretations")
         for index, row in corr_interpretation_df.iterrows():
-            st.write(f"**{index+1} {row['Variables']} (Correlation: {row['Correlation']:.2f})**: {row['Interpretation']}")
+            st.write(f"**{index+1}. {row['Variables']} (Correlation: {row['Correlation']:.2f})**: {row['Interpretation']}")
 
         st.write("### Recommendations Based on Correlations")
         for index, row in corr_recommendation_df.iterrows():
-            st.write(f"**{index+1} {row['Variables']}**: {row['Recommendation']}")
+            st.write(f"**{index+1}. {row['Variables']}**: {row['Recommendation']}")
 
         # Make Multivarate Regression Analysis
         st.header('Multivariate Regression Analysis')
