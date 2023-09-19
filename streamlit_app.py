@@ -20,7 +20,8 @@ data_sample_url = 'https://docs.google.com/spreadsheets/d/1A-hKivtLFUJeOpLolfKy5
 st.write(f'[Survey Data Sample file download]({data_sample_url})')
 
 st.write('Contact: ho.tuong.vinh@gmail.com')
-st.header('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. USE WITH CAUTION!')
+st.header('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS.')
+st.header('USE WITH CAUTION!')
 
 
 def visualize_stats_table(stats_table):
