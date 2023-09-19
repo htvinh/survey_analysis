@@ -372,7 +372,7 @@ def interpret_and_recommend_regression(results, alpha=0.05):
     
     # R-squared value
     r_squared = results.rsquared
-    interpretations.append(f"The model explains approximately R-squared= {r_squared * 100:.2f}% of the variability in the target variable.")
+    interpretations.append(f"The model explains approximately {r_squared * 100:.2f}% (R-squared) of the variability in the target variable.")
     
     # Interpret the intercept
     intercept = summary_df.loc['intercept', 'coef']
