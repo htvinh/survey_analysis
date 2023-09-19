@@ -11,6 +11,7 @@ st.write('Need only to adapt the Data Model according to your survey structure.'
 st.write('Attention: the column column index for "col_index" begins at 0.')
 st.write('For the survey data, only need to download as Excel from Google Docs.')
 st.write('Contact: ho.tuong.vinh@gmail.com')
+st.header('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. USE WITH CAUTION!')
 
 
 def visualize_stats_table(stats_table):
