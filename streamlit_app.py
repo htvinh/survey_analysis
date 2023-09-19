@@ -10,6 +10,15 @@ st.write('Download these 2 sample files to prepare your files.')
 st.write('Need only to adapt the Data Model according to your survey structure.')
 st.write('Attention: the column column index for "col_index" begins at 0.')
 st.write('For the survey data, only need to download as Excel from Google Docs.')
+
+# To link to Data Model Sample Excel file
+data_model_sample_url = 'https://docs.google.com/spreadsheets/d/19ymgAkEUgvux6z7ykWHnlmtfwu0h3iMa/edit?usp=drive_link&ouid=103775647130982487748&rtpof=true&sd=true'
+st.write(f'[Data Model Sample file download]({data_model_sample_url})')
+
+# To link to Survey Data Sample Excel file
+data_sample_url = 'https://docs.google.com/spreadsheets/d/1A-hKivtLFUJeOpLolfKy5Pd_rUDfsPY1/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
+st.write(f'[Survey Data Sample file download]({data_sample_url})')
+
 st.write('Contact: ho.tuong.vinh@gmail.com')
 st.header('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. USE WITH CAUTION!')
 
@@ -29,15 +38,6 @@ def visualize_stats_table(stats_table):
         plt.ylabel('Percentage (%)')
         plt.xticks(rotation=30, ha='right')
         st.pyplot(fig)
-
-
-# To link to Data Model Sample Excel file
-data_model_sample_url = 'https://docs.google.com/spreadsheets/d/19ymgAkEUgvux6z7ykWHnlmtfwu0h3iMa/edit?usp=drive_link&ouid=103775647130982487748&rtpof=true&sd=true'
-st.write(f'[Data Model Sample file download]({data_model_sample_url})')
-
-# To link to Survey Data Sample Excel file
-data_sample_url = 'https://docs.google.com/spreadsheets/d/1A-hKivtLFUJeOpLolfKy5Pd_rUDfsPY1/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
-st.write(f'[Survey Data Sample file download]({data_sample_url})')
 
 
 # Upload DATA MODEL Excel file
