@@ -170,6 +170,7 @@ extended_likert_mapping_all_languages = {
     'không ý kiến': 4,
     'đồng ý': 6,
     'hoàn toàn đồng ý': 7,
+    'trung lap': 4,
     
     # Numerical Levels
     1: 1,
