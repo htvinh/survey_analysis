@@ -156,6 +156,7 @@ def convert_likert_to_numerical(df, likert_mapping):
     if df_numerical.applymap(np.isreal).all().all() == False:
         raise AssertionError("Not all columns are numeric after mapping. Check your mapping and DataFrame.")
         
+    del df
     return df_numerical
 
 
