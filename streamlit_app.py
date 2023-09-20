@@ -281,33 +281,37 @@ if data_model_name is not None:
 
         # Make Multivarate Regression Analysis
         st.header('Multivariate Regression Analysis')
-        target_data = extract_selected_colums_data(data, [target_cols_names[0]])
-        variable_data = independent_data
-        regression_results = do_multivariate_regression_analysis_with_OLS(target_data, variable_data)
-        summary_result = regression_results.summary() 
+        for idx, target_col in enumerate(target_cols_names):
+            st.write('\n========================================')
+            st.write(f'Regression Analysis for Target {target_cols_names[idx]}')
+            target_data = extract_selected_colums_data(data, [target_cols_names[idx]])
+            variable_data = independent_data
+            output_filename = f'Multivariate_Regression_Summary_{idx+1}.docx'
+            regression_results = do_multivariate_regression_analysis_with_OLS(target_data, variable_data, output_filename)
+            summary_result = regression_results.summary() 
 
-        # Create a download button for the Excel file
-        filename = 'Multivariate_Regression_Summary.docx'
-        st.download_button(
-            label="Download Multivariate Regression Analysis Report Docx File",
-            file_name = filename,
-            data=open(f'./output/{filename}', 'rb').read(),
-            key='excel-download-button-reg'
-        )
-        st.write(summary_result)
+            # Create a download button for the Excel file
+            filename = output_filename
+            st.download_button(
+                label="Download Multivariate Regression Analysis Report Docx File",
+                file_name = filename,
+                data=open(f'./output/{filename}', 'rb').read(),
+                key=f'excel-download-button-reg-{idx+1}'
+            )
+            st.write(summary_result)
 
-        # Interpretation and recommendations
-        reg_interpretation, reg_recommendation = interpret_and_recommend_regression_with_OLS(regression_results)
-        # Display in Streamlit
-        st.write("### Regression Interpretations")
-        st.write(reg_interpretation)
+            # Interpretation and recommendations
+            reg_interpretation, reg_recommendation = interpret_and_recommend_regression_with_OLS(regression_results)
+            # Display in Streamlit
+            st.write("### Regression Interpretations")
+            st.write(reg_interpretation)
 
-        # Display recommendations as a list for better readability
-        st.write("### Detailed Recommendations Based on Regression")
-        recommendations_list = reg_recommendation.split('. ')
-        for i, rec in enumerate(recommendations_list):
-            if rec:  # Check if the recommendation string is not empty
-                st.write(f"{i+1}. {rec}.")
+            # Display recommendations as a list for better readability
+            st.write("### Detailed Recommendations Based on Regression")
+            recommendations_list = reg_recommendation.split('. ')
+            for i, rec in enumerate(recommendations_list):
+                if rec:  # Check if the recommendation string is not empty
+                    st.write(f"{i+1}. {rec}.")
 
 
     st.write('\n\n\n==============================================================================\n')

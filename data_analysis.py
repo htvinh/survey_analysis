@@ -333,7 +333,7 @@ def interpret_and_recommend_correlation(correlation_table, threshold=0.5):
     return interpretation_df, recommendation_df
 
 # Regression Analysis with OLS
-def do_multivariate_regression_analysis_with_OLS(target_variable_data, independent_variable_data):
+def do_multivariate_regression_analysis_with_OLS(target_variable_data, independent_variable_data, output_filename):
     # Add a constant term for the intercept
     independent_variable_data['intercept'] = 1
 
@@ -358,7 +358,7 @@ def do_multivariate_regression_analysis_with_OLS(target_variable_data, independe
     doc.add_paragraph(summary_str)
 
     # Save the document
-    filename = 'Multivariate_Regression_Summary.docx'
+    filename = output_filename
     doc.save(f'{output_path}{filename}')
 
     return results # .summary()
