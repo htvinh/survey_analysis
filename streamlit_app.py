@@ -8,8 +8,7 @@ st.title('SURVEY DATA ANALYSIS')
 
 st.write('Download these 2 sample files to prepare your files.')
 st.write('Need only to adapt the Data Model according to your survey structure.')
-st.write('Attention: the column column index for "col_index" begins at 0.')
-st.write('For the survey data, only need to download as Excel from Google Docs.')
+st.write('For the survey data, only need to download as Excel from Google Forms.')
 
 # To link to Data Model Sample Excel file
 data_model_sample_url = 'https://docs.google.com/spreadsheets/d/19ymgAkEUgvux6z7ykWHnlmtfwu0h3iMa/edit?usp=drive_link&ouid=103775647130982487748&rtpof=true&sd=true'
@@ -50,26 +49,35 @@ if data_model_name is not None:
     # st.dataframe(data_model)
     
     demographic_cols = pd.read_excel(data_model_name, sheet_name='Demographic', header=0)
+    origin_demographic_cols = demographic_cols.copy() # To display only
+    # Convert column index to 0-Python based, supposing that the user begin the column index from 0
+    demographic_cols['col_index'] = demographic_cols['col_index']-1
     demographic_cols = demographic_cols.to_dict(orient='records')
+
     independent_cols = pd.read_excel(data_model_name, sheet_name='Independent')
+    origin_independent_cols = independent_cols.copy() # To display only
+    independent_cols['col_index_from'] = independent_cols['col_index_from']-1
     independent_cols = independent_cols.to_dict(orient='records')
+
     target_cols = pd.read_excel(data_model_name, sheet_name='Dependent')
+    origin_target_cols = target_cols.copy() # To display only
+    target_cols['col_index_from'] = target_cols['col_index_from']-1
     target_cols = target_cols.to_dict(orient='records')
     
     st.write('Demographic Variables/Columns')
-    st.dataframe(demographic_cols)
+    st.dataframe(origin_demographic_cols)
     print('Demographic Variables/Columns')
-    print(demographic_cols)
+    print(origin_demographic_cols)
 
     st.write('Independent Variables/Columns')
-    st.dataframe(independent_cols)
+    st.dataframe(origin_independent_cols)
     print('Independent Variables/Columns')
-    print(independent_cols)
+    print(origin_independent_cols)
 
     st.write('Dependent/Target Variables/Columns')
-    st.dataframe(target_cols)
+    st.dataframe(origin_target_cols)
     print('Dependent/Target Variables/Columns')
-    print(target_cols)
+    print(origin_target_cols)
 
     data_file_name = st.sidebar.file_uploader("Upload SURVEY DATA Excel file", type=["xlsx", "xls"])
     if data_file_name is not None:
@@ -127,6 +135,10 @@ if data_model_name is not None:
 
         total_removed = data_points_removed_3 + data_points_removed_2 + data_points_removed_1
         st.write(f'Number of data points removed because of missing data:   {total_removed}')
+
+        # To check if the mapping between Data Model and Survey Data is correct (in terms of Column Index)
+        for index, column_name in enumerate(data.columns):
+            print(f"Column {index}: {column_name}")
 
         # Create a statistics table for Demographic Columns
         selected_cols_names = demographic_cols_names
@@ -272,8 +284,8 @@ if data_model_name is not None:
         st.header('Multivariate Regression Analysis')
         target_data = extract_selected_colums_data(data, [target_cols_names[0]])
         variable_data = independent_data
-        regression_results = do_multivariate_regression_analysis(target_data, variable_data)
-        summary_result = regression_results.summary()
+        regression_results = do_multivariate_regression_analysis_with_OLS(target_data, variable_data)
+        summary_result = regression_results.summary() 
 
         # Create a download button for the Excel file
         filename = 'Multivariate_Regression_Summary.docx'
@@ -286,7 +298,7 @@ if data_model_name is not None:
         st.write(summary_result)
 
         # Interpretation and recommendations
-        reg_interpretation, reg_recommendation = interpret_and_recommend_regression(regression_results)
+        reg_interpretation, reg_recommendation = interpret_and_recommend_regression_with_OLS(regression_results)
         # Display in Streamlit
         st.write("### Regression Interpretations")
         st.write(reg_interpretation)

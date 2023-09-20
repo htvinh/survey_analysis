@@ -331,8 +331,8 @@ def interpret_and_recommend_correlation(correlation_table, threshold=0.5):
 
     return interpretation_df, recommendation_df
 
-# Regression Analysis
-def do_multivariate_regression_analysis(target_variable_data, independent_variable_data):
+# Regression Analysis with OLS
+def do_multivariate_regression_analysis_with_OLS(target_variable_data, independent_variable_data):
     # Add a constant term for the intercept
     independent_variable_data['intercept'] = 1
 
@@ -340,7 +340,7 @@ def do_multivariate_regression_analysis(target_variable_data, independent_variab
     X = independent_variable_data
     Y = target_variable_data
 
-    # Perform the regression
+    # Perform the regression the ordinal logistic regression model
     model = sm.OLS(Y, X)
 
     results = model.fit()
@@ -363,7 +363,7 @@ def do_multivariate_regression_analysis(target_variable_data, independent_variab
     return results # .summary()
 
 # interpret_and_recommend_regression function here
-def interpret_and_recommend_regression(results, alpha=0.05):
+def interpret_and_recommend_regression_with_OLS(results, alpha=0.05):
     interpretations = []
     recommendations = []
     
@@ -407,3 +407,90 @@ def interpret_and_recommend_regression(results, alpha=0.05):
     recommendation_text = ' '.join(recommendations)
     
     return interpretation_text, recommendation_text
+
+# Regression Analysis with Ordinal Logistic Regression Model
+def do_multivariate_regression_analysis_with_MNLogit(target_variable_data, independent_variable_data):
+    # Add a constant term for the intercept
+    independent_variable_data['intercept'] = 1
+
+    # Perform multiple linear regression
+    X = independent_variable_data
+    Y = target_variable_data
+
+    # Perform the regression the ordinal logistic regression model
+    model = sm.MNLogit(Y, X)
+
+    results = model.fit()
+    print('\nModel fit. Done')
+    print(results.summary())
+
+    # Create a new Document
+    '''
+    doc = Document()
+    doc.add_heading('Regression Summary', 0)
+
+    # Add the summary to the document
+    # doc.add_paragraph(results)
+
+    # Save the document
+    filename = 'Multivariate_Regression_Summary.docx'
+    doc.save(f'{output_path}{filename}')
+    '''
+    return results
+
+# interpret_and_recommend_regression function here
+def interpret_and_recommend_regression_with_MNLogit(results, predictors, outcome_categories):
+    """
+    Interpret the results of an ordinal logistic regression model and provide recommendations.
+
+    Parameters:
+    - results: Results object from an ordinal logistic regression model (e.g., model.fit()).
+    - predictors: List of predictor variable names.
+    - outcome_categories: List of ordered outcome category labels.
+
+    Returns:
+    - Interpretation, recommendations, and odds ratio changes based on the model results.
+    """
+    
+    # Create a DataFrame to store the results
+    result_df = pd.DataFrame({'Predictor': predictors})
+    
+    # Get the model coefficients, p-values, and confidence intervals
+    coefficients = results.params
+    p_values = results.pvalues
+    conf_int = results.conf_int()
+    conf_int['Odds Ratio'] = np.exp(conf_int[0]), np.exp(conf_int[1])
+    
+    # Add coefficients, odds ratios, and p-values to the result DataFrame
+    result_df['Coefficient'] = coefficients
+    result_df['Odds Ratio'] = np.exp(coefficients)
+    result_df['95% CI (Lower)'] = conf_int[0]
+    result_df['95% CI (Upper)'] = conf_int[1]
+    result_df['P-value'] = p_values
+    
+    # Interpretation, recommendations, and odds ratio changes
+    interpretation = []
+    recommendations = []
+    odds_ratio_changes = []
+
+    for index, row in result_df.iterrows():
+        predictor = row['Predictor']
+        coef = row['Coefficient']
+        p_value = row['P-value']
+
+        if p_value < 0.05:  # Significant predictors
+            if coef > 0:
+                interpretation.append(f"{predictor}: Increase in odds by {np.exp(coef):.2f} (95% CI: {np.exp(conf_int.loc[predictor]['95% CI (Lower)']):.2f} - {np.exp(conf_int.loc[predictor]['95% CI (Upper)']):.2f}).")
+                recommendations.append(f"Recommendation for {predictor}: Consider strategies that increase the likelihood of {outcome_categories[-1]}.")
+                odds_ratio_changes.append(f"Odds Ratio Change for {predictor}: An increase in {predictor} is associated with a {np.exp(coef):.2f} times higher odds of {outcome_categories[-1]}.")
+            else:
+                interpretation.append(f"{predictor}: Decrease in odds by {1/np.exp(coef):.2f} (95% CI: {1/np.exp(conf_int.loc[predictor]['95% CI (Upper)']):.2f} - {1/np.exp(conf_int.loc[predictor]['95% CI (Lower)']):.2f}).")
+                recommendations.append(f"Recommendation for {predictor}: Consider strategies that decrease the likelihood of {outcome_categories[-1]}.")
+                odds_ratio_changes.append(f"Odds Ratio Change for {predictor}: A decrease in {predictor} is associated with a {1/np.exp(coef):.2f} times lower odds of {outcome_categories[-1]}.")
+        else:
+            interpretation.append(f"{predictor}: Not statistically significant.")
+            recommendations.append(f"No specific recommendation for {predictor} due to lack of statistical significance.")
+            odds_ratio_changes.append(f"No significant odds ratio change for {predictor} due to lack of statistical significance.")
+    
+    return interpretation, recommendations, odds_ratio_changes
+
