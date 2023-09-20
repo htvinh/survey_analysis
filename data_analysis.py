@@ -82,7 +82,6 @@ def compute_selected_cols_statistics(df, selected_cols_names, output_file_name):
     nbr_data_points_cleaned = df.shape[0]
     stats_table = {}
     for col_name in selected_cols_names:
-        stats_col ={}
         freq = df[col_name].value_counts().sort_index()
         percent = (freq / nbr_data_points_cleaned) * 100
         percent = percent.round(1)  # Round to two decimal places
@@ -95,6 +94,7 @@ def compute_selected_cols_statistics(df, selected_cols_names, output_file_name):
     output_file_name = f'{output_file_name}_Stats'
     save_to_excel(output_file_name, stats_table)
 
+    del df
     return stats_table
 
 

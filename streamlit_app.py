@@ -92,7 +92,6 @@ if data_model_name is not None:
         nbr_columns = data.shape[1]
         nbr_rows = data.shape[0]
         total_num_data_points = nbr_rows
-        # st.header('Survey Data')
         st.write(f"Number of rows: {nbr_rows} and columns: {nbr_columns}")
 
         # Rename columns for demographic data columns: to have shorter column names
