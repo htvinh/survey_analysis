@@ -102,11 +102,6 @@ def compute_selected_cols_statistics(df, selected_cols_names, output_file_name):
 def convert_to_dataframe(table):
     dfs = {}
     for key, value in table.items():
-        print(type(value))
-        # lines = value.split("\n")
-        # header = lines[0].split()
-        # content = [line.split() for line in lines[1:]]
-        # df = pd.DataFrame(content, columns=header)
         df = value
         dfs[key] = df
 
@@ -124,7 +119,6 @@ def save_to_excel(filename, table):
 # Extract data for selected columns
 def extract_selected_colums_data(df, selected_cols_names):
     data_to_extract = df[selected_cols_names]
-    # data_to_extract = convert_values_to_numeric(data_to_extract)
     data_to_extract = convert_likert_to_numerical(data_to_extract, extended_likert_mapping_all_languages)
     return data_to_extract
 
@@ -142,15 +136,13 @@ def convert_values_to_numeric(df):
 # Function to manually convert Likert-scale responses to numerical values
 def convert_likert_to_numerical(df, likert_mapping):
     df_numerical = df.copy()
-    # Truncate leading and trailing spaces for consistent mapping
-    # df_numerical = df_numerical.applymap(str.strip)
     # Convert all columns to string type for consistent mapping
     df_numerical = df_numerical.astype(str)
     # Convert the mapping keys to string type as well
     str_likert_mapping = {str(key): value for key, value in likert_mapping.items()}
     
     for column in df.columns:
-        df_numerical[column] = df_numerical[column].map(str_likert_mapping)
+        df_numerical[column] = df_numerical[column].str.lower().map(str_likert_mapping)
         
     # Check for any remaining non-numeric values
     if df_numerical.applymap(np.isreal).all().all() == False:
@@ -165,23 +157,19 @@ def convert_likert_to_numerical(df, likert_mapping):
 # Sample Likert scale mapping (you can adjust this based on your actual survey Likert scale)
 extended_likert_mapping_all_languages = {
     # English Labels
-    'Strongly Disagree': 1,
-    'Disagree': 2,
-    'Neutral': 4,
-    'Agree': 6,
-    'Strongly Agree': 7,
-    'Strongly disagree': 1,
-    'Disagree': 2,
-    'No opinion': 4,
-    'Agree': 6,
-    'Strongly agree': 7,
-    
+    'strongly disagree': 1,
+    'disagree': 2,
+    'neutral': 4,
+    'agree': 6,
+    'strongly agree': 7,
+    'no opinion': 4,
+   
     # Vietnamese Labels
-    'Hoàn toàn không đồng ý': 1,
-    'Không đồng ý': 2,
-    'Không ý kiến': 4,
-    'Đồng ý': 6,
-    'Hoàn toàn đồng ý': 7,
+    'hoàn toàn không đồng ý': 1,
+    'không đồng ý': 2,
+    'không ý kiến': 4,
+    'đồng ý': 6,
+    'hoàn toàn đồng ý': 7,
     
     # Numerical Levels
     1: 1,
@@ -255,7 +243,6 @@ def do_efa_analysis(selected_data, num_factors):
     # print(f"EFA loadings:\n{loadings}")
     # Visualize the factor loadings
     loadings_df = pd.DataFrame(factor_loadings, columns=[f'Factor {i+1}' for i in range(num_factors)], index=selected_data.columns)
-    # print(loadings_df)
     # Save the EFA analysis to an Excel file
     filename = 'EFA_Analysis'
     # Set index=False to exclude the DataFrame index
