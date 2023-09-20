@@ -17,6 +17,9 @@ st.write(f'[Data Model Sample file download]({data_model_sample_url})')
 # To link to Survey Data Sample Excel file
 data_sample_url = 'https://docs.google.com/spreadsheets/d/1A-hKivtLFUJeOpLolfKy5Pd_rUDfsPY1/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
 st.write(f'[Survey Data Sample file download]({data_sample_url})')
+data_sample_url = 'https://docs.google.com/spreadsheets/d/1AATsrch7RkOoD-IEhEm-wBmb1n6kOsZd/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
+st.write(f'[Survey Data Sample (in English) file download]({data_sample_url})')
+
 
 st.write('Contact: ho.tuong.vinh@gmail.com')
 st.write('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. USE WITH CAUTION!')
