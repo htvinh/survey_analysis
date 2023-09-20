@@ -170,6 +170,11 @@ extended_likert_mapping_all_languages = {
     'Neutral': 4,
     'Agree': 6,
     'Strongly Agree': 7,
+    'Strongly disagree': 1,
+    'Disagree': 2,
+    'No opinion': 4,
+    'Agree': 6,
+    'Strongly agree': 7,
     
     # Vietnamese Labels
     'Hoàn toàn không đồng ý': 1,
