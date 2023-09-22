@@ -9,6 +9,7 @@ from sklearn.preprocessing import LabelEncoder
 
 import os
 
+
 output_path = './output/'
 # Check if the directory exists
 if not os.path.exists(output_path):
@@ -210,7 +211,7 @@ def compute_cronbach_alpha(selected_data, independent_cols):
         nbr_questions = col.get('number_questions')
         for idx in range(nbr_questions):
             col_names.append(f'{variable_name}_Q{idx+1}')
-        print(col_names)
+        # print(col_names)
         data_of_this_variable = selected_data[col_names]
         # Calcul Alphe for this variable
         alpha_variable = cronbach_alpha(data_of_this_variable)
@@ -364,127 +365,153 @@ def interpret_and_recommend_regression_with_OLS(results, alpha=0.05):
     # Convert the results summary to a DataFrame
     summary_df = pd.read_html(results.summary().tables[1].as_html(), header=0, index_col=0)[0]
     
-    # R-squared value
+    # 1. R-squared value
     r_squared = results.rsquared
-    interpretations.append(f"The model explains approximately {r_squared * 100:.2f}% (R-squared) of the variability in the target variable.")
+    msg = f"R^2 (Coefficient of Determination) {r_squared:.3f} "
+    msg += f"indicates that approximately {r_squared * 100:.1f}% of the variability in the target variable can be explained by the independent variables."
+    interpretations.append(msg)
     
     # Interpret the intercept
-    intercept = summary_df.loc['intercept', 'coef']
-    interpretations.append(f"The estimated intercept is {intercept:.2f}. This is the expected value of the target variable when all independent variables are zero.")
+    # intercept = summary_df.loc['intercept', 'coef']
+    # interpretations.append(f"The estimated intercept is {intercept:.2f}. This is the expected value of the target variable when all independent variables are zero.")
 
-    for variable, row in summary_df.iterrows():
-        coef = row['coef']
-        p_value = row['P>|t|']
-        conf_low, conf_high = row['[0.025'], row['0.975]']
-        
-        # Skip the intercept for recommendations (already interpreted)
-        if variable == 'intercept':
-            continue
+    # 2. Adjusted R^2
+    adjusted_r_squared = results.rsquared_adj
+    # msg = f" Adjusted R^2 {adjusted_r_squared:.3f} "
+    # msg += 'is a more accurate measure when comparing models with different numbers of predictors.'
+    # interpretations.append(msg)
 
-        # Interpretation based on p-value and coefficient
-        if p_value < alpha:
-            interpretation = f"For {variable}, the estimated coefficient is {coef:.2f} with a 95% confidence interval between {conf_low:.2f} and {conf_high:.2f}. "
-            if coef > 0:
-                interpretation += f"A unit increase in {variable} is associated with an estimated increase of {coef:.2f} in the target variable."
-                recommendation = f"Consider focusing on increasing {variable} to positively impact the target variable."
-            else:
-                interpretation += f"A unit increase in {variable} is associated with an estimated decrease of {abs(coef):.2f} in the target variable."
-                recommendation = f"Be cautious when increasing {variable}, as it might negatively impact the target variable."
-            
-            interpretations.append(interpretation)
-            recommendations.append(recommendation)
-        else:
-            recommendation = f"The variable {variable} is not statistically significant at the {alpha*100}% level, so it may not be a reliable predictor."
-            recommendations.append(recommendation)
+    # 3. F-statistic and Prob (F-statistic)
+    # Define the significance level
+    alpha = 0.05
+    f_statistic = results.fvalue
+    p_value_f_statistic = results.f_pvalue
+    msg = f" F-statistic of ({f_statistic:.3f}) with a Prob (F-statistic) ({p_value_f_statistic:.2e}): "
+    if p_value_f_statistic < alpha:
+        msg += f"the p-value is less than the significance level of {alpha}, indicating that the model as a whole is statistically significant."
+    else:
+        msg += f"the p-value is greater than the significance level of {alpha}, indicating that the model as a whole is not statistically significant."        
+    interpretations.append(msg)
 
+    # 4. Durbin-Watson statistic
+    durbin_watson = sm.stats.stattools.durbin_watson(results.resid)
+    # Define the lower and upper bounds for Durbin-Watson statistic
+    lower_bound = 1.5
+    upper_bound = 2.5
+    # Interpret the Durbin-Watson statistic
+    if durbin_watson < lower_bound:
+        msg = f"Durbin-Watson ({durbin_watson:.3f}) suggests positive autocorrelation."
+    elif durbin_watson > upper_bound:
+        msg = f"Durbin-Watson ({durbin_watson:.3f}) suggests negative autocorrelation."
+    else:
+        msg = f"Durbin-Watson ({durbin_watson:.3f}) suggests that there is no autocorrelation."
+    interpretations.append(msg)
+
+    # 5. Individual Coefficients and Significant Predictors
+    # Define the significance level
+    alpha = 0.05
+
+    # Extract coefficients and p-values from the results object
+    coefficients = results.params
+    p_values = results.pvalues
+
+    # Exclude the intercept (constant term) from the list
+    if 'intercept' in coefficients.index:
+        coefficients = coefficients.drop('intercept')
+        p_values = p_values.drop('intercept')
+
+    # Create a DataFrame with predictors, coefficients, and p-values
+    significant_predictors_df = pd.DataFrame({
+        'Predictor': coefficients.index,
+        'Coefficient': coefficients.values,
+        'p-value': p_values.values
+    })
+
+    # Filter the DataFrame to include only significant predictors based on the significance level
+    significant_predictors_df = significant_predictors_df[significant_predictors_df['p-value'] < alpha]
+    # Format the 'Coefficient' and 'p-value' columns to have three decimal places
+    significant_predictors_df['Coefficient'] = significant_predictors_df['Coefficient'].apply('{:.3f}'.format)
+    significant_predictors_df['p-value'] = significant_predictors_df['p-value'].apply('{:.3f}'.format)
+
+    print(significant_predictors_df)
+    # significant_predictors_str = significant_predictors_df.to_string(index=False, header=False)
+    significant_predictors_str = '|  '.join(significant_predictors_df.apply(lambda row: ', '.join(row.astype(str)), axis=1))
+
+    msg = "\nIndividual Coefficients:"
+    if len(significant_predictors_df) > 0:
+        msg += '\nThe following Individual Coefficients with Associated p-values < 0.05 are considered Significant Predictors:\n'
+        interpretations.append(msg)
+        interpretations.append(significant_predictors_str)
+
+    else:
+        msg += '\nNo Individual Coefficients are considered Significant Predictors because their p-values > 0.05.\n'
+        interpretations.append(msg)
+
+    print(significant_predictors_str)
+    
     interpretation_text = ' '.join(interpretations)
     recommendation_text = ' '.join(recommendations)
     
     return interpretation_text, recommendation_text
 
-# Regression Analysis with Ordinal Logistic Regression Model
-def do_multivariate_regression_analysis_with_MNLogit(target_variable_data, independent_variable_data):
+# To test a hypothesis: if a factor (with all its constructs/questions) has an effect on the dependent variable.
+# Formulate Hypotheses:
+# Null Hypothesis (): The coefficients of all the questions representing the "HH" factor are equal to zero (i.e., the "HH" factor has no effect on the dependent variable).
+# Alternative Hypothesis (Ha): At least one of the coefficients of the questions representing the "HH" factor is not equal to zero (i.e., the "HH" factor has an effect on the dependent variable).
+
+def test_if_factor_has_effect_on_target(target_variable_data, independent_variable_data, independent_cols):
     # Add a constant term for the intercept
     independent_variable_data['intercept'] = 1
+    independent_variable_data_full = independent_variable_data.copy()
 
     # Perform multiple linear regression
     X = independent_variable_data
     Y = target_variable_data
 
-    # Perform the regression the ordinal logistic regression model
-    model = sm.MNLogit(Y, X)
+    # Perform the OLS with FULL independent_variable_data
+    model_full = sm.OLS(Y, X)
+    results_full = model_full.fit()
 
-    results = model.fit()
-    print('\nModel fit. Done')
-    print(results.summary())
+    # Fit the reduced model (excluding Factor variables/constructs)
+    first_independent_cols_indice = 0
+    i = 0
+    all_results = []
+    for col in independent_cols: 
+        independent_variable_data = independent_variable_data_full.copy()
+        col_name = col.get('name')
+        col_index_from = col.get('col_index_from') 
+        col_nbr_questions = col.get('number_questions')
+        if i == 0:
+            first_independent_cols_indice = col_index_from
+        i += 1
+        list_cols = []
+        for idx in range(col_nbr_questions):
+            list_cols.append(col_index_from+idx-first_independent_cols_indice)
+        # print(list_cols)
+        # Assuming list_cols contains column indices
+        column_labels_to_drop = independent_variable_data.columns[list_cols]
+        # Drop the specified columns by labels
+        X_reduced = independent_variable_data.drop(columns=column_labels_to_drop)
+        model_reduced = sm.OLS(Y, X_reduced)
+        results_reduced = model_reduced.fit()
 
-    # Create a new Document
-    '''
-    doc = Document()
-    doc.add_heading('Regression Summary', 0)
+        del independent_variable_data
 
-    # Add the summary to the document
-    # doc.add_paragraph(results)
+        # Perform the F-test
+        # f_statistic, p_value, _ = results_reduced.compare_f_test(results_full)
+        f_statistic, p_value, _ = results_full.compare_f_test(results_reduced)
+        print(f_statistic, p_value)
 
-    # Save the document
-    filename = 'Multivariate_Regression_Summary.docx'
-    doc.save(f'{output_path}{filename}')
-    '''
-    return results
-
-# interpret_and_recommend_regression function here
-def interpret_and_recommend_regression_with_MNLogit(results, predictors, outcome_categories):
-    """
-    Interpret the results of an ordinal logistic regression model and provide recommendations.
-
-    Parameters:
-    - results: Results object from an ordinal logistic regression model (e.g., model.fit()).
-    - predictors: List of predictor variable names.
-    - outcome_categories: List of ordered outcome category labels.
-
-    Returns:
-    - Interpretation, recommendations, and odds ratio changes based on the model results.
-    """
-    
-    # Create a DataFrame to store the results
-    result_df = pd.DataFrame({'Predictor': predictors})
-    
-    # Get the model coefficients, p-values, and confidence intervals
-    coefficients = results.params
-    p_values = results.pvalues
-    conf_int = results.conf_int()
-    conf_int['Odds Ratio'] = np.exp(conf_int[0]), np.exp(conf_int[1])
-    
-    # Add coefficients, odds ratios, and p-values to the result DataFrame
-    result_df['Coefficient'] = coefficients
-    result_df['Odds Ratio'] = np.exp(coefficients)
-    result_df['95% CI (Lower)'] = conf_int[0]
-    result_df['95% CI (Upper)'] = conf_int[1]
-    result_df['P-value'] = p_values
-    
-    # Interpretation, recommendations, and odds ratio changes
-    interpretation = []
-    recommendations = []
-    odds_ratio_changes = []
-
-    for index, row in result_df.iterrows():
-        predictor = row['Predictor']
-        coef = row['Coefficient']
-        p_value = row['P-value']
-
-        if p_value < 0.05:  # Significant predictors
-            if coef > 0:
-                interpretation.append(f"{predictor}: Increase in odds by {np.exp(coef):.2f} (95% CI: {np.exp(conf_int.loc[predictor]['95% CI (Lower)']):.2f} - {np.exp(conf_int.loc[predictor]['95% CI (Upper)']):.2f}).")
-                recommendations.append(f"Recommendation for {predictor}: Consider strategies that increase the likelihood of {outcome_categories[-1]}.")
-                odds_ratio_changes.append(f"Odds Ratio Change for {predictor}: An increase in {predictor} is associated with a {np.exp(coef):.2f} times higher odds of {outcome_categories[-1]}.")
-            else:
-                interpretation.append(f"{predictor}: Decrease in odds by {1/np.exp(coef):.2f} (95% CI: {1/np.exp(conf_int.loc[predictor]['95% CI (Upper)']):.2f} - {1/np.exp(conf_int.loc[predictor]['95% CI (Lower)']):.2f}).")
-                recommendations.append(f"Recommendation for {predictor}: Consider strategies that decrease the likelihood of {outcome_categories[-1]}.")
-                odds_ratio_changes.append(f"Odds Ratio Change for {predictor}: A decrease in {predictor} is associated with a {1/np.exp(coef):.2f} times lower odds of {outcome_categories[-1]}.")
+        # Check the significance of the F-test
+        alpha = 0.05
+        if p_value < alpha:
+            result = f"The presence of {col_name} has a noticeable impact on the outcome. This means that {col_name} plays a significant role in explaining the variations in the dependent variable ( (F-statistic: {f_statistic:.3f}, p-value: {p_value:.3f}))"        
         else:
-            interpretation.append(f"{predictor}: Not statistically significant.")
-            recommendations.append(f"No specific recommendation for {predictor} due to lack of statistical significance.")
-            odds_ratio_changes.append(f"No significant odds ratio change for {predictor} due to lack of statistical significance.")
-    
-    return interpretation, recommendations, odds_ratio_changes
+            result = f"There is not enough evidence to conclude that the {col_name} factor has a significant effect on the dependent variable (F-statistic: {f_statistic:.3f}, p-value: {p_value:.3f})."
+        print(result)
 
+        all_results.append(result)
+    
+    print(all_results)
+
+    return all_results

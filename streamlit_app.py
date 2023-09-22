@@ -25,6 +25,8 @@ st.write('Contact: ho.tuong.vinh@gmail.com')
 st.write('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. USE WITH CAUTION!')
 
 
+is_visualized = False # True
+
 def visualize_stats_table(stats_table):
     for col_name, stats_df in stats_table.items():
         st.write(f'### Percentage Distribution (%) for {col_name}')
@@ -160,7 +162,8 @@ if data_model_name is not None:
         with st.expander("To display"):
             st.write(demographic_stats_table)
         # Visualize
-        visualize_stats_table(demographic_stats_table)
+        if is_visualized is True:
+            visualize_stats_table(demographic_stats_table)
 
         print('\nCreate a statistics table for Demographic Columns!  Done')
 
@@ -182,7 +185,8 @@ if data_model_name is not None:
             st.write(independent_stats_table)
         # st.write(independent_stats_table)
         # Visualize
-        visualize_stats_table(independent_stats_table)
+        if is_visualized is True:
+            visualize_stats_table(independent_stats_table)
         print('\nCreate a statistics table for Independent Columns!  Done')
 
         # Create statistic table for target_cols
@@ -202,7 +206,8 @@ if data_model_name is not None:
         with st.expander("To display"):
             st.write(target_stats_table)
         # st.write(target_stats_table)
-        visualize_stats_table(target_stats_table)
+        if is_visualized is True:
+            visualize_stats_table(target_stats_table)
         print('\nCreate a statistics table for Target Columns!  Done')
 
         # Extract data for Indendent Columns
@@ -310,11 +315,23 @@ if data_model_name is not None:
             st.write(reg_interpretation)
 
             # Display recommendations as a list for better readability
-            st.write("### Detailed Recommendations Based on Regression")
-            recommendations_list = reg_recommendation.split('. ')
-            for i, rec in enumerate(recommendations_list):
-                if rec:  # Check if the recommendation string is not empty
-                    st.write(f"{i+1}. {rec}.")
+            # st.write("### Detailed Recommendations Based on Regression")
+            # recommendations_list = reg_recommendation.split('. ')
+            #for i, rec in enumerate(recommendations_list):
+            #    if rec:  # Check if the recommendation string is not empty
+            #        st.write(f"{i+1}. {rec}.")
+
+        # Testing hypothesis: if a factor/independent variable has effect on the dependent variable
+        st.header('Testing if a factor/independent variable has effect on the dependent variable.')
+        for idx, target_col in enumerate(target_cols_names):
+            st.write('\n========================================')
+            st.write(f'Testing Effect hypothesis for Target {target_cols_names[idx]}')
+            target_data = extract_selected_colums_data(data, [target_cols_names[idx]])
+            variable_data = independent_data
+            testing_results = test_if_factor_has_effect_on_target(target_data, variable_data, independent_cols)
+            st.write('\nTesting Results:\n', testing_results)
+
+
 
 
     st.write('\n\n\n==============================================================================\n')
