@@ -340,28 +340,6 @@ if data_model_name is not None:
 
 
         # CONDUCT SEM analysis
-        if is_sem_analysis == True:
-            selected_cols_names = target_cols_names
-            target_data = extract_selected_colums_data(data, selected_cols_names)
-            sem_results = conduct_sem_analysis(independent_cols, target_cols, independent_data, target_data)
-            st.header('Conduct SEM (Structural Equation Modeling Analysis')
-
-            # Create a download button for the Excel file
-            filename = 'SEM_Results.xlsx'
-            st.download_button(
-                label="Download SEM Results Excel File",
-                file_name = filename,
-                data=open(f'./output/{filename}', 'rb').read(),
-                key='excel-download-button-sem'
-            )
-            st.write(sem_results)
-
-            # Interpretation
-            interpret_sem = interpret_sem_results(sem_results)
-            st.header('SEM Result Interpretation')
-            st.write(interpret_sem)
-
-            print('\SEM analysis.   Done')
 
         
     st.write('\n\n\n\n\n==============================================================================\n')

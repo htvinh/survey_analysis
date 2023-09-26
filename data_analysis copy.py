@@ -6,6 +6,7 @@ import numpy as np
 import seaborn as sns
 import statsmodels.api as sm
 from sklearn.preprocessing import LabelEncoder
+
 from semopy import Model as SEM_Model
 
 
@@ -57,9 +58,7 @@ def rename_independent_columns(df, independent_cols):
         col_index_from = col.get('col_index_from')
         col_index_to = col_index_from + col.get('number_questions')
 
-        # Rename columns based on Likert scale questions
         for i in range(col_index_from, col_index_to):
-            # df.rename(columns={df.columns[i]: f'{col_name}_Q{i - col_index_from + 1}'}, inplace=True)
             old_col_name = df.columns[i]
             new_col_name = f'{col_name}_Q{i - col_index_from + 1}'
             df.rename(columns={old_col_name: new_col_name}, inplace=True)
@@ -73,13 +72,13 @@ def rename_target_columns(df, target_cols):
     for col in target_cols:
         col_name = col.get('name')
         col_index_from = col.get('col_index_from')
-
+        col_index_to = col_index_from + col.get('number_questions')
         # Rename the column
-        # df.rename(columns={df.columns[col_index_from]: col_name}, inplace=True)
-        old_col_name = df.columns[i]
-        new_col_name = f'{col_name}_Q{i - col_index_from + 1}'
-        df.rename(columns={old_col_name: new_col_name}, inplace=True)
-        target_cols_names.append(new_col_name)  # Append the new column name
+        for i in range(col_index_from, col_index_to):
+            old_col_name = df.columns[i]
+            new_col_name = f'{col_name}_Q{i - col_index_from + 1}'
+            df.rename(columns={old_col_name: new_col_name}, inplace=True)
+            target_cols_names.append(new_col_name)  # Append the new column name
 
     return df, target_cols_names
 
@@ -576,10 +575,8 @@ def conduct_sem_analysis(independent_cols, target_cols, independent_data, target
     # Format the column names of the independent_data and target_data DataFrames
     independent_data = format_column_names(independent_data)
     target_data = format_column_names(target_data)
-    new_independent_cols = independent_data.columns
-    new_target_cols = target_data.columns
-    print(new_independent_cols)
-    print(new_target_cols)
+    # print(target_data)
+    # print(new_target_cols)
     
     # Generate the measurement model string for independent variables (latent constructs)
     independent_constructs = create_latent_construct(independent_cols)
@@ -603,12 +600,93 @@ def conduct_sem_analysis(independent_cols, target_cols, independent_data, target
     print(sem_model_spec)
 
     # Assuming SEM_Model is properly imported and defined
-    model = SEM_Model(sem_model_spec)
+    sem_model = SEM_Model(sem_model_spec)
 
     # Join the formatted independent_data and target_data DataFrames
     df = independent_data.join(target_data, how='inner')
+    # print(df)
 
     # Fit the SEM model to the survey data
-    results = model.fit(df)
+    sem_model.fit(df)
 
-    return results
+    # Retrieve the results using the inspect method
+    results_df = sem_model.inspect()
+
+    # Display the results
+    # print(results_df)
+
+    # Define the list of independent factors and dependent variables in your model
+    independent_factors = [format_name(col.get('name')) for col in independent_cols]
+    dependent_variables = [format_name(col.get('name')) for col in target_cols]
+
+    # Filter results_df to only include rows representing relationships between independent factors and dependent variables
+    filtered_results_df = results_df[
+        results_df.apply(lambda row: (row['lval'] in independent_factors and row['rval'] in dependent_variables) or
+                                      (row['lval'] in dependent_variables and row['rval'] in independent_factors), axis=1)]
+
+    # Display the filtered results
+    print(filtered_results_df)
+
+    # Save the Correlation Table to an Excel file
+    # Set index=False to exclude the DataFrame index
+    filename = 'SEM_Results'
+    excel_file_path = f'{output_path}{filename}.xlsx'
+    results_df.to_excel(excel_file_path, index=True)  
+
+    del df, # independent_data, target_data
+    return filtered_results_df
+
+# Interpret SEM results
+def interpret_sem_results(sem_results):
+    # Define significance level
+    alpha = 0.05
+
+    # Initialize an empty list to store interpretations
+    interpretations = []
+
+    # Iterate over rows of the results DataFrame
+    for index, row in sem_results.iterrows():
+        # Retrieve relevant information from the row
+        lval = row['lval']
+        rval = row['rval']
+        op = row['op']
+        
+        # Check if p_value is a valid number
+        try:
+            p_value = float(row['p-value'])
+            estimate = float(row['Estimate'])
+        except ValueError:
+            print(f"Warning: Unable to convert values to float for {lval} {op} {rval}. Skipping interpretation.")
+            continue  # Skip to the next iteration
+        
+        # Check if the relationship is between a factor and a dependent variable
+        # You might need to customize this condition based on your specific model and variable names
+        if op == '~':
+            relationship = "influences"
+        else:
+            continue  # Skip rows that do not represent relationships between factors and dependent variables
+        
+        # Check the significance of the parameter
+        if p_value <= alpha:
+            significance = "statistically significant"
+        else:
+            significance = "not statistically significant"
+
+        # Determine the direction of the relationship
+        if estimate > 0:
+            direction = "positive"
+        elif estimate < 0:
+            direction = "negative"
+        else:
+            direction = "neutral"
+
+        # Build the interpretation string
+        # interpretation = f"{lval} {relationship} {rval} in a {significance} (p-value= {p_value}) and {direction} (estimate= {estimate}) manner. "
+        interpretation = (f"{rval} has a {significance} "
+                  f"(p-value= {p_value}) and {direction} "
+                  f"(estimate= {estimate}) relationship with {lval}.")
+        
+        # Append the interpretation to the list
+        interpretations.append(interpretation)
+
+    return interpretations

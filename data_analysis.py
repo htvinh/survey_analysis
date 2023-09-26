@@ -6,7 +6,8 @@ import numpy as np
 import seaborn as sns
 import statsmodels.api as sm
 from sklearn.preprocessing import LabelEncoder
-from semopy import Model as SEM_Model
+
+# from semopy import Model as SEM_Model
 
 
 import os
@@ -545,6 +546,7 @@ def test_if_factor_has_effect_on_target(target_variable_data, independent_variab
 
     return all_results
 
+'''
 
 # Structural Equation Modeling (SEM) 
 
@@ -689,3 +691,6 @@ def interpret_sem_results(sem_results):
         interpretations.append(interpretation)
 
     return interpretations
+
+
+'''
