@@ -11,4 +11,4 @@ scikit-learn
 scipy
 sympy 
 patsy
-semopy
+semopy==2.3.10
