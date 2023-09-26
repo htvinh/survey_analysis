@@ -572,11 +572,8 @@ def format_column_names(df):
 
 def conduct_sem_analysis(independent_cols, target_cols, independent_data, target_data):
     # Format the column names of the independent_data and target_data DataFrames
-    print(target_data)
     independent_data = format_column_names(independent_data)
     target_data = format_column_names(target_data)
-    new_independent_cols = independent_data.columns
-    new_target_cols = target_data.columns
     # print(target_data)
     # print(new_target_cols)
     
@@ -690,9 +687,5 @@ def interpret_sem_results(sem_results):
         
         # Append the interpretation to the list
         interpretations.append(interpretation)
-
-    # Print out the interpretations
-    #for i, interpretation in enumerate(interpretations, 1):
-    #     print(f"Interpretation {i}:", interpretation)
 
     return interpretations

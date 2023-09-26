@@ -26,6 +26,7 @@ st.write('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. 
 
 
 is_visualized = True # True False
+is_sem_analysis = False # True False
 
 def visualize_stats_table(stats_table):
     for col_name, stats_df in stats_table.items():
@@ -339,27 +340,28 @@ if data_model_name is not None:
 
 
         # CONDUCT SEM analysis
-        selected_cols_names = target_cols_names
-        target_data = extract_selected_colums_data(data, selected_cols_names)
-        sem_results = conduct_sem_analysis(independent_cols, target_cols, independent_data, target_data)
-        st.header('Conduct SEM (Structural Equation Modeling Analysis')
+        if is_sem_analysis == True:
+            selected_cols_names = target_cols_names
+            target_data = extract_selected_colums_data(data, selected_cols_names)
+            sem_results = conduct_sem_analysis(independent_cols, target_cols, independent_data, target_data)
+            st.header('Conduct SEM (Structural Equation Modeling Analysis')
 
-        # Create a download button for the Excel file
-        filename = 'SEM_Results.xlsx'
-        st.download_button(
-            label="Download SEM Results Excel File",
-            file_name = filename,
-            data=open(f'./output/{filename}', 'rb').read(),
-            key='excel-download-button-sem'
-        )
-        st.write(sem_results)
+            # Create a download button for the Excel file
+            filename = 'SEM_Results.xlsx'
+            st.download_button(
+                label="Download SEM Results Excel File",
+                file_name = filename,
+                data=open(f'./output/{filename}', 'rb').read(),
+                key='excel-download-button-sem'
+            )
+            st.write(sem_results)
 
-        # Interpretation
-        interpret_sem = interpret_sem_results(sem_results)
-        st.header('SEM Result Interpretation')
-        st.write(interpret_sem)
+            # Interpretation
+            interpret_sem = interpret_sem_results(sem_results)
+            st.header('SEM Result Interpretation')
+            st.write(interpret_sem)
 
-        print('\SEM analysis.   Done')
+            print('\SEM analysis.   Done')
 
         
     st.write('\n\n\n\n\n==============================================================================\n')
