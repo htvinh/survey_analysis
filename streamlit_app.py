@@ -25,7 +25,7 @@ st.write('Contact: ho.tuong.vinh@gmail.com')
 st.write('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. USE WITH CAUTION!')
 
 
-is_visualized = False # True False
+is_visualized = True # True False
 is_sem_analysis = False # True False
 
 def visualize_stats_table(stats_table):
@@ -44,6 +44,9 @@ def visualize_stats_table(stats_table):
         plt.xticks(rotation=30, ha='right')
         st.pyplot(fig)
 
+        # Clear the current figure and close it to free up memory
+        plt.clf()
+        plt.close(fig)
 
 # Upload DATA MODEL Excel file
 data_model_name = st.sidebar.file_uploader("Upload DATA MODEL Excel file", type=["xlsx", "xls"])
