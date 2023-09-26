@@ -635,6 +635,7 @@ def conduct_sem_analysis(independent_cols, target_cols, independent_data, target
     excel_file_path = f'{output_path}{filename}.xlsx'
     results_df.to_excel(excel_file_path, index=True)  
 
+    del df, # independent_data, target_data
     return filtered_results_df
 
 # Interpret SEM results
