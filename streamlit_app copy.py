@@ -17,27 +17,41 @@ st.write(f'[Data Model Sample file download]({data_model_sample_url})')
 # To link to Survey Data Sample Excel file
 data_sample_url = 'https://docs.google.com/spreadsheets/d/1A-hKivtLFUJeOpLolfKy5Pd_rUDfsPY1/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
 st.write(f'[Survey Data Sample file download]({data_sample_url})')
+data_sample_url = 'https://docs.google.com/spreadsheets/d/1AATsrch7RkOoD-IEhEm-wBmb1n6kOsZd/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
+st.write(f'[Survey Data Sample (in English) file download]({data_sample_url})')
+
 
 st.write('Contact: ho.tuong.vinh@gmail.com')
 st.write('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. USE WITH CAUTION!')
 
 
+is_visualized = True # True False
+is_sem_analysis = False # True False
+
 def visualize_stats_table(stats_table):
     for col_name, stats_df in stats_table.items():
         st.write(f'### Percentage Distribution (%) for {col_name}')
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.barplot(x=stats_df.index, y=stats_df['Percent'], ax=ax)
+        fig, ax = plt.subplots(figsize=(3, 2))
+        sns.barplot(x=stats_df.index, y=stats_df['Percent'], ax=ax, )
+
+        # Set the fontsize for title, labels, and ticks
+        title_fontsize = 7
+        label_fontsize = 6
+        ticks_fontsize = 5
 
         # Annotate each bar with the respective frequency value
         for i, v in enumerate(stats_df['Percent']):
-            ax.text(i, v/2, str(v), ha='center', va='center')
+            ax.text(i, v/2, str(v), ha='center', va='center', fontsize=ticks_fontsize)
+        
+        plt.title(f'Percentage Distribution for {col_name}', fontsize=title_fontsize)
+        plt.xlabel(col_name, fontsize=label_fontsize)
+        plt.ylabel('Percentage (%)', fontsize=label_fontsize)
+        
+        # Set the fontsize for x-ticks and y-ticks
+        plt.xticks(rotation=30, ha='right', fontsize=ticks_fontsize)
+        plt.yticks(fontsize=ticks_fontsize)
 
-        plt.title(f'Percentage Distribution for {col_name}', fontsize=14)
-        plt.xlabel(col_name)
-        plt.ylabel('Percentage (%)')
-        plt.xticks(rotation=30, ha='right')
         st.pyplot(fig)
-
 
 # Upload DATA MODEL Excel file
 data_model_name = st.sidebar.file_uploader("Upload DATA MODEL Excel file", type=["xlsx", "xls"])
@@ -157,7 +171,8 @@ if data_model_name is not None:
         with st.expander("To display"):
             st.write(demographic_stats_table)
         # Visualize
-        visualize_stats_table(demographic_stats_table)
+        if is_visualized is True:
+            visualize_stats_table(demographic_stats_table)
 
         print('\nCreate a statistics table for Demographic Columns!  Done')
 
@@ -179,7 +194,8 @@ if data_model_name is not None:
             st.write(independent_stats_table)
         # st.write(independent_stats_table)
         # Visualize
-        visualize_stats_table(independent_stats_table)
+        if is_visualized is True:
+            visualize_stats_table(independent_stats_table)
         print('\nCreate a statistics table for Independent Columns!  Done')
 
         # Create statistic table for target_cols
@@ -199,15 +215,21 @@ if data_model_name is not None:
         with st.expander("To display"):
             st.write(target_stats_table)
         # st.write(target_stats_table)
-        visualize_stats_table(target_stats_table)
+        if is_visualized is True:
+            visualize_stats_table(target_stats_table)
         print('\nCreate a statistics table for Target Columns!  Done')
 
         # Extract data for Indendent Columns
         selected_cols_names = independent_cols_names
-        # st.write(independent_cols_names)
         independent_data = extract_selected_colums_data(data, selected_cols_names)
         # st.write(independent_data)
         print('\nExtract Independent Data.   Done\n')
+
+        # Extract data for Dependent Columns
+        selected_cols_names = target_cols_names
+        # st.write(selected_cols_names)
+        target_data = extract_selected_colums_data(data, selected_cols_names)
+        # st.write(target_data)
 
         st.header("Testing the reliability of the scale using Cronbach's alpha for independent columns")
         # Calculate Cronbach's alpha
@@ -281,36 +303,64 @@ if data_model_name is not None:
 
         # Make Multivarate Regression Analysis
         st.header('Multivariate Regression Analysis')
-        target_data = extract_selected_colums_data(data, [target_cols_names[0]])
-        variable_data = independent_data
-        regression_results = do_multivariate_regression_analysis_with_OLS(target_data, variable_data)
-        summary_result = regression_results.summary() 
+        for idx, target_col in enumerate(target_cols_names):
+            st.write('\n========================================')
+            st.write(f'Regression Analysis for Target {target_cols_names[idx]}')
+            target_data = extract_selected_colums_data(data, [target_cols_names[idx]])
+            variable_data = independent_data
+            output_filename = f'Multivariate_Regression_Summary_{idx+1}.docx'
+            regression_results = do_multivariate_regression_analysis_with_OLS(target_data, variable_data, output_filename)
+            summary_result = regression_results.summary() 
 
-        # Create a download button for the Excel file
-        filename = 'Multivariate_Regression_Summary.docx'
-        st.download_button(
-            label="Download Multivariate Regression Analysis Report Docx File",
-            file_name = filename,
-            data=open(f'./output/{filename}', 'rb').read(),
-            key='excel-download-button-reg'
-        )
-        st.write(summary_result)
+            # Create a download button for the Excel file
+            filename = output_filename
+            st.download_button(
+                label="Download Multivariate Regression Analysis Report Docx File",
+                file_name = filename,
+                data=open(f'./output/{filename}', 'rb').read(),
+                key=f'excel-download-button-reg-{idx+1}'
+            )
+            st.write(summary_result)
 
-        # Interpretation and recommendations
-        reg_interpretation, reg_recommendation = interpret_and_recommend_regression_with_OLS(regression_results)
-        # Display in Streamlit
-        st.write("### Regression Interpretations")
-        st.write(reg_interpretation)
+            # Interpretation and recommendations
+            reg_interpretation, reg_recommendation = interpret_and_recommend_regression_with_OLS(regression_results)
+            # Display in Streamlit
+            st.write("### Regression Interpretations")
+            st.write(reg_interpretation)
 
-        # Display recommendations as a list for better readability
-        st.write("### Detailed Recommendations Based on Regression")
-        recommendations_list = reg_recommendation.split('. ')
-        for i, rec in enumerate(recommendations_list):
-            if rec:  # Check if the recommendation string is not empty
-                st.write(f"{i+1}. {rec}.")
+            # Display recommendations as a list for better readability
+            # st.write("### Detailed Recommendations Based on Regression")
+            # recommendations_list = reg_recommendation.split('. ')
+            #for i, rec in enumerate(recommendations_list):
+            #    if rec:  # Check if the recommendation string is not empty
+            #        st.write(f"{i+1}. {rec}.")
+
+        # Testing hypothesis: if a factor/independent variable has effect on the dependent variable
+        st.header('Testing if a factor/independent variable has effect on the dependent variable.')
+        st.write('The F-test (Linear Regression) helps you determine if the factor you are studying has a significant impact on the dependent variable you are measuring.')
+        for idx, target_col in enumerate(target_cols_names):
+            st.write('\n========================================')
+            st.write(f'Testing Effect hypothesis for Target {target_cols_names[idx]}')
+            target_data = extract_selected_colums_data(data, [target_cols_names[idx]])
+            variable_data = independent_data
+            testing_results = test_if_factor_has_effect_on_target(target_data, variable_data, independent_cols)
+            st.write('\nTesting Results:\n', testing_results)
 
 
-    st.write('\n\n\n==============================================================================\n')
+        # CONDUCT SEM analysis
+        st.header('Conduct SEM (Structural Equation Modeling)')
+        target_data = extract_selected_colums_data(data, selected_cols_names)
+        sem_results = conduct_sem_analysis(independent_cols, target_col, independent_data, target_data)
+        st.write('SEM Results')
+        st.write(sem_results)
+        st.write('\n\nInterpretation')
+        sem_results = interpret_sem_results(sem_results)
+        st.write(sem_results)
+
+
+
+
+    st.write('\n\n\n\n\n==============================================================================\n')
     st.write('And more ... Only 1 minute to convert Youtube video to slides!')
     st.write('https://htvinh-youtube2slides-streamlit-app-k14x3w.streamlitapp.com/')
     st.write('\n')

@@ -546,7 +546,7 @@ def test_if_factor_has_effect_on_target(target_variable_data, independent_variab
 
     return all_results
 
-'''
+
 
 # Structural Equation Modeling (SEM) 
 
@@ -572,6 +572,7 @@ def format_column_names(df):
     formatted_columns = {col: format_name(col) for col in df.columns}
     return df.rename(columns=formatted_columns)
 
+# Structural Equation Modeling (SEM)
 def conduct_sem_analysis(independent_cols, target_cols, independent_data, target_data):
     # Format the column names of the independent_data and target_data DataFrames
     independent_data = format_column_names(independent_data)
@@ -684,8 +685,8 @@ def interpret_sem_results(sem_results):
         # Build the interpretation string
         # interpretation = f"{lval} {relationship} {rval} in a {significance} (p-value= {p_value}) and {direction} (estimate= {estimate}) manner. "
         interpretation = (f"{rval} has a {significance} "
-                  f"(p-value= {p_value}) and {direction} "
-                  f"(estimate= {estimate}) relationship with {lval}.")
+                  f"(p-value= {p_value:.3f}) and {direction} "
+                  f"(estimate= {estimate:.2f}) relationship with {lval}.")
         
         # Append the interpretation to the list
         interpretations.append(interpretation)
@@ -693,4 +694,3 @@ def interpret_sem_results(sem_results):
     return interpretations
 
 
-'''
