@@ -31,7 +31,7 @@ is_sem_analysis = False # True False
 def visualize_stats_table(stats_table):
     for col_name, stats_df in stats_table.items():
         st.write(f'### Percentage Distribution (%) for {col_name}')
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(5, 3))
         sns.barplot(x=stats_df.index, y=stats_df['Percent'], ax=ax)
 
         # Annotate each bar with the respective frequency value
@@ -45,8 +45,8 @@ def visualize_stats_table(stats_table):
         st.pyplot(fig)
 
         # Clear the current figure and close it to free up memory
-        plt.clf()
-        plt.close(fig)
+        # plt.clf()
+        # plt.close(fig)
 
 # Upload DATA MODEL Excel file
 data_model_name = st.sidebar.file_uploader("Upload DATA MODEL Excel file", type=["xlsx", "xls"])
