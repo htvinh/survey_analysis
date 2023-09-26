@@ -2,13 +2,16 @@ streamlit
 # pingouin
 # factor_analyzer
 pandas
-numpy
-# statsmodels
+# numpy
+statsmodels
 python-docx
 openpyxl
 seaborn
 scikit-learn
+numpy
 scipy
-sympy 
+pandas
+matplotlib
+sympy
 patsy
 semopy==2.3.10
