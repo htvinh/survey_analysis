@@ -25,7 +25,7 @@ st.write('Contact: ho.tuong.vinh@gmail.com')
 st.write('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. USE WITH CAUTION!')
 
 
-is_visualized = True # True False
+is_visualized = False # True False
 is_sem_analysis = False # True False
 
 def visualize_stats_table(stats_table):
