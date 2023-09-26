@@ -2,7 +2,7 @@ streamlit
 # pingouin
 # factor_analyzer
 pandas
-# numpy
+numpy
 # statsmodels
 python-docx
 openpyxl
