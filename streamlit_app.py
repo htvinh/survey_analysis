@@ -34,14 +34,14 @@ def visualize_stats_table(stats_table):
         fig, ax = plt.subplots(figsize=(3, 2))
         sns.barplot(x=stats_df.index, y=stats_df['Percent'], ax=ax)
 
-        fontsize = 5
+        fontsize = 2
         # Annotate each bar with the respective frequency value
         for i, v in enumerate(stats_df['Percent']):
             ax.text(i, v/2, str(v), ha='center', va='center', fontsize=fontsize)
 
         plt.title(f'Percentage Distribution for {col_name}', fontsize=fontsize)
         plt.xlabel(col_name, fontsize=fontsize)
-        plt.ylabel('Percentage (%)')
+        plt.ylabel('Percentage (%)', fontsize=fontsize)
         plt.xticks(rotation=30, ha='right', fontsize=fontsize)
         st.pyplot(fig)
 
