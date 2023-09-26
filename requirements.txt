@@ -9,4 +9,6 @@ openpyxl
 seaborn
 scikit-learn
 scipy
+sympy 
+patsy
 semopy
