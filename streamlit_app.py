@@ -31,7 +31,7 @@ is_sem_analysis = False # True False
 def visualize_stats_table(stats_table):
     for col_name, stats_df in stats_table.items():
         st.write(f'### Percentage Distribution (%) for {col_name}')
-        fig, ax = plt.subplots(figsize=(5, 3))
+        fig, ax = plt.subplots(figsize=(3, 2))
         sns.barplot(x=stats_df.index, y=stats_df['Percent'], ax=ax)
 
         # Annotate each bar with the respective frequency value
