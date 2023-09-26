@@ -6,6 +6,8 @@ import numpy as np
 import seaborn as sns
 import statsmodels.api as sm
 from sklearn.preprocessing import LabelEncoder
+from semopy import Model as SEM_Model
+
 
 import os
 
@@ -55,9 +57,7 @@ def rename_independent_columns(df, independent_cols):
         col_index_from = col.get('col_index_from')
         col_index_to = col_index_from + col.get('number_questions')
 
-        # Rename columns based on Likert scale questions
         for i in range(col_index_from, col_index_to):
-            # df.rename(columns={df.columns[i]: f'{col_name}_Q{i - col_index_from + 1}'}, inplace=True)
             old_col_name = df.columns[i]
             new_col_name = f'{col_name}_Q{i - col_index_from + 1}'
             df.rename(columns={old_col_name: new_col_name}, inplace=True)
@@ -71,10 +71,13 @@ def rename_target_columns(df, target_cols):
     for col in target_cols:
         col_name = col.get('name')
         col_index_from = col.get('col_index_from')
-
+        col_index_to = col_index_from + col.get('number_questions')
         # Rename the column
-        df.rename(columns={df.columns[col_index_from]: col_name}, inplace=True)
-        target_cols_names.append(col_name)  # Append the new column name
+        for i in range(col_index_from, col_index_to):
+            old_col_name = df.columns[i]
+            new_col_name = f'{col_name}_Q{i - col_index_from + 1}'
+            df.rename(columns={old_col_name: new_col_name}, inplace=True)
+            target_cols_names.append(new_col_name)  # Append the new column name
 
     return df, target_cols_names
 
@@ -180,9 +183,36 @@ extended_likert_mapping_all_languages = {
     4: 4,
     5: 5,
     6: 6,
-    7: 7
+    7: 7,
+    8: 8,
+    9: 9,
 }
 
+# Convert dataframe to numerical, keeping ordinality
+def convert_df_to_numerical(df):
+    # Initialize a list to store the names of detected ordinal columns
+    detected_ordinal_columns = []
+
+    # Check each column in the survey data
+    for column in df.columns:
+        # Get the unique values in the column (excluding NaN)
+        unique_values = set(df[column].dropna().unique())
+        
+        # Check if the unique values are a subset of the extended ordinal mapping keys
+        if unique_values.issubset(set(extended_likert_mapping_all_languages.keys())):
+            # Column is detected as ordinal, mark it as an ordinal column
+            detected_ordinal_columns.append(column)
+                
+            # Apply the extended ordinal mapping to convert the ordinal responses to numerical values
+            df[column] = df[column].map(extended_likert_mapping_all_languages)
+
+    # Identify categorical columns (excluding the detected ordinal columns)
+    categorical_columns = df.select_dtypes(include=['object']).columns.difference(detected_ordinal_columns)
+
+    # Convert categorical columns to numerical values using one-hot encoding
+    df = pd.get_dummies(df, columns=categorical_columns)
+
+    return df
 
 
 
@@ -498,14 +528,13 @@ def test_if_factor_has_effect_on_target(target_variable_data, independent_variab
         del independent_variable_data
 
         # Perform the F-test
-        # f_statistic, p_value, _ = results_reduced.compare_f_test(results_full)
         f_statistic, p_value, _ = results_full.compare_f_test(results_reduced)
         print(f_statistic, p_value)
 
         # Check the significance of the F-test
         alpha = 0.05
         if p_value < alpha:
-            result = f"The presence of {col_name} has a noticeable impact on the outcome. This means that {col_name} plays a significant role in explaining the variations in the dependent variable ( (F-statistic: {f_statistic:.3f}, p-value: {p_value:.3f}))"        
+            result = f"The presence of {col_name} has a noticeable impact on the outcome. This means that {col_name} plays a significant role in explaining the variations in the dependent variable (F-statistic: {f_statistic:.3f}, p-value: {p_value:.3f})"        
         else:
             result = f"There is not enough evidence to conclude that the {col_name} factor has a significant effect on the dependent variable (F-statistic: {f_statistic:.3f}, p-value: {p_value:.3f})."
         print(result)
@@ -515,3 +544,154 @@ def test_if_factor_has_effect_on_target(target_variable_data, independent_variab
     print(all_results)
 
     return all_results
+
+
+# Structural Equation Modeling (SEM) 
+
+# Create latent construct according to variables/cols defined in the data model.
+def create_latent_construct(selected_cols):
+    constructs =''
+    for col in selected_cols:
+        construct = format_name(col.get('name'))
+        num_items = col.get('number_questions')
+        col_index_from = int(col.get('col_index_from'))
+        # items = [f"{construct}_Q{col_index_from + i}" for i in range(num_items)]
+        items = [f"{construct}_Q{i+1}" for i in range(num_items)]
+        constructs += f"{construct} =~ {' + '.join(items)}\n"
+
+    return constructs
+
+def format_name(name):
+    """Format the name by removing spaces and special characters."""
+    return name.replace(" ", "_").replace("(", "").replace(")", "")
+
+def format_column_names(df):
+    """Format the column names of a DataFrame."""
+    formatted_columns = {col: format_name(col) for col in df.columns}
+    return df.rename(columns=formatted_columns)
+
+def conduct_sem_analysis(independent_cols, target_cols, independent_data, target_data):
+    # Format the column names of the independent_data and target_data DataFrames
+    print(target_data)
+    independent_data = format_column_names(independent_data)
+    target_data = format_column_names(target_data)
+    new_independent_cols = independent_data.columns
+    new_target_cols = target_data.columns
+    # print(target_data)
+    # print(new_target_cols)
+    
+    # Generate the measurement model string for independent variables (latent constructs)
+    independent_constructs = create_latent_construct(independent_cols)
+
+    # Generate the measurement model string for dependent variables (latent constructs)
+    dependent_constructs = create_latent_construct(target_cols)
+
+    # Initialize the structural model string
+    structural_model = ""
+    
+    # Define the relationships between independent and dependent latent constructs
+    for target_col in target_cols:
+        target_construct = format_name(target_col.get('name'))
+        independent_constructs_list = [format_name(col.get('name')) for col in independent_cols]
+        structural_model += f"{target_construct} ~ {' + '.join(independent_constructs_list)}\n"
+    
+    # Combine measurement and structural model strings to create the full SEM syntax string
+    sem_model_spec = f'\n{independent_constructs}\n{dependent_constructs}\n{structural_model}\n'
+
+    # Print the generated SEM syntax string
+    print(sem_model_spec)
+
+    # Assuming SEM_Model is properly imported and defined
+    sem_model = SEM_Model(sem_model_spec)
+
+    # Join the formatted independent_data and target_data DataFrames
+    df = independent_data.join(target_data, how='inner')
+    # print(df)
+
+    # Fit the SEM model to the survey data
+    sem_model.fit(df)
+
+    # Retrieve the results using the inspect method
+    results_df = sem_model.inspect()
+
+    # Display the results
+    # print(results_df)
+
+    # Define the list of independent factors and dependent variables in your model
+    independent_factors = [format_name(col.get('name')) for col in independent_cols]
+    dependent_variables = [format_name(col.get('name')) for col in target_cols]
+
+    # Filter results_df to only include rows representing relationships between independent factors and dependent variables
+    filtered_results_df = results_df[
+        results_df.apply(lambda row: (row['lval'] in independent_factors and row['rval'] in dependent_variables) or
+                                      (row['lval'] in dependent_variables and row['rval'] in independent_factors), axis=1)]
+
+    # Display the filtered results
+    print(filtered_results_df)
+
+    # Save the Correlation Table to an Excel file
+    # Set index=False to exclude the DataFrame index
+    filename = 'SEM_Results'
+    excel_file_path = f'{output_path}{filename}.xlsx'
+    results_df.to_excel(excel_file_path, index=True)  
+
+    return filtered_results_df
+
+# Interpret SEM results
+def interpret_sem_results(sem_results):
+    # Define significance level
+    alpha = 0.05
+
+    # Initialize an empty list to store interpretations
+    interpretations = []
+
+    # Iterate over rows of the results DataFrame
+    for index, row in sem_results.iterrows():
+        # Retrieve relevant information from the row
+        lval = row['lval']
+        rval = row['rval']
+        op = row['op']
+        
+        # Check if p_value is a valid number
+        try:
+            p_value = float(row['p-value'])
+            estimate = float(row['Estimate'])
+        except ValueError:
+            print(f"Warning: Unable to convert values to float for {lval} {op} {rval}. Skipping interpretation.")
+            continue  # Skip to the next iteration
+        
+        # Check if the relationship is between a factor and a dependent variable
+        # You might need to customize this condition based on your specific model and variable names
+        if op == '~':
+            relationship = "influences"
+        else:
+            continue  # Skip rows that do not represent relationships between factors and dependent variables
+        
+        # Check the significance of the parameter
+        if p_value <= alpha:
+            significance = "statistically significant"
+        else:
+            significance = "not statistically significant"
+
+        # Determine the direction of the relationship
+        if estimate > 0:
+            direction = "positive"
+        elif estimate < 0:
+            direction = "negative"
+        else:
+            direction = "neutral"
+
+        # Build the interpretation string
+        # interpretation = f"{lval} {relationship} {rval} in a {significance} (p-value= {p_value}) and {direction} (estimate= {estimate}) manner. "
+        interpretation = (f"{rval} has a {significance} "
+                  f"(p-value= {p_value}) and {direction} "
+                  f"(estimate= {estimate}) relationship with {lval}.")
+        
+        # Append the interpretation to the list
+        interpretations.append(interpretation)
+
+    # Print out the interpretations
+    #for i, interpretation in enumerate(interpretations, 1):
+    #     print(f"Interpretation {i}:", interpretation)
+
+    return interpretations

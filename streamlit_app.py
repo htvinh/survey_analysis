@@ -212,10 +212,15 @@ if data_model_name is not None:
 
         # Extract data for Indendent Columns
         selected_cols_names = independent_cols_names
-        # st.write(independent_cols_names)
         independent_data = extract_selected_colums_data(data, selected_cols_names)
         # st.write(independent_data)
         print('\nExtract Independent Data.   Done\n')
+
+        # Extract data for Dependent Columns
+        selected_cols_names = target_cols_names
+        # st.write(selected_cols_names)
+        target_data = extract_selected_colums_data(data, selected_cols_names)
+        # st.write(target_data)
 
         st.header("Testing the reliability of the scale using Cronbach's alpha for independent columns")
         # Calculate Cronbach's alpha
@@ -323,6 +328,7 @@ if data_model_name is not None:
 
         # Testing hypothesis: if a factor/independent variable has effect on the dependent variable
         st.header('Testing if a factor/independent variable has effect on the dependent variable.')
+        st.write('The F-test (Linear Regression) helps you determine if the factor you are studying has a significant impact on the dependent variable you are measuring.')
         for idx, target_col in enumerate(target_cols_names):
             st.write('\n========================================')
             st.write(f'Testing Effect hypothesis for Target {target_cols_names[idx]}')
@@ -332,9 +338,31 @@ if data_model_name is not None:
             st.write('\nTesting Results:\n', testing_results)
 
 
+        # CONDUCT SEM analysis
+        selected_cols_names = target_cols_names
+        target_data = extract_selected_colums_data(data, selected_cols_names)
+        sem_results = conduct_sem_analysis(independent_cols, target_cols, independent_data, target_data)
+        st.header('Conduct SEM (Structural Equation Modeling Analysis')
 
+        # Create a download button for the Excel file
+        filename = 'SEM_Results.xlsx'
+        st.download_button(
+            label="Download SEM Results Excel File",
+            file_name = filename,
+            data=open(f'./output/{filename}', 'rb').read(),
+            key='excel-download-button-sem'
+        )
+        st.write(sem_results)
 
-    st.write('\n\n\n==============================================================================\n')
+        # Interpretation
+        interpret_sem = interpret_sem_results(sem_results)
+        st.header('SEM Result Interpretation')
+        st.write(interpret_sem)
+
+        print('\SEM analysis.   Done')
+
+        
+    st.write('\n\n\n\n\n==============================================================================\n')
     st.write('And more ... Only 1 minute to convert Youtube video to slides!')
     st.write('https://htvinh-youtube2slides-streamlit-app-k14x3w.streamlitapp.com/')
     st.write('\n')
