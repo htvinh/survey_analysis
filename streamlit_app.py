@@ -32,22 +32,24 @@ def visualize_stats_table(stats_table):
     for col_name, stats_df in stats_table.items():
         st.write(f'### Percentage Distribution (%) for {col_name}')
         fig, ax = plt.subplots(figsize=(3, 2))
-        sns.barplot(x=stats_df.index, y=stats_df['Percent'], ax=ax)
+        sns.barplot(x=stats_df.index, y=stats_df['Percent'], ax=ax, )
 
-        fontsize = 2
+        # Set the fontsize for title, labels, and ticks
+        title_fontsize = 5
+        label_fontsize = 4
+        ticks_fontsize = 3
+
         # Annotate each bar with the respective frequency value
         for i, v in enumerate(stats_df['Percent']):
-            ax.text(i, v/2, str(v), ha='center', va='center', fontsize=fontsize)
-
-        plt.title(f'Percentage Distribution for {col_name}', fontsize=fontsize)
-        plt.xlabel(col_name, fontsize=fontsize)
-        plt.ylabel('Percentage (%)', fontsize=fontsize)
-        plt.xticks(rotation=30, ha='right', fontsize=fontsize)
-        st.pyplot(fig)
-
-        # Clear the current figure and close it to free up memory
-        # plt.clf()
-        # plt.close(fig)
+            ax.text(i, v/2, str(v), ha='center', va='center', fontsize=ticks_fontsize)
+        
+        plt.title(f'Percentage Distribution for {col_name}', fontsize=title_fontsize)
+        plt.xlabel(col_name, fontsize=label_fontsize)
+        plt.ylabel('Percentage (%)', fontsize=label_fontsize)
+        
+        # Set the fontsize for x-ticks and y-ticks
+        plt.xticks(rotation=30, ha='right', fontsize=ticks_fontsize)
+        plt.yticks(fontsize=ticks_fontsize)
 
 # Upload DATA MODEL Excel file
 data_model_name = st.sidebar.file_uploader("Upload DATA MODEL Excel file", type=["xlsx", "xls"])
