@@ -35,8 +35,8 @@ def visualize_stats_table(stats_table):
         sns.barplot(x=stats_df.index, y=stats_df['Percent'], ax=ax, )
 
         # Set the fontsize for title, labels, and ticks
-        title_fontsize = 7
-        label_fontsize = 7
+        title_fontsize = 5
+        label_fontsize = 5
         ticks_fontsize = 5
 
         # Annotate each bar with the respective frequency value
