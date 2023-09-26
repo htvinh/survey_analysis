@@ -7,3 +7,6 @@ seaborn
 statsmodels
 python-docx
 openpyxl
+seaborn
+# scikit-learn
+# semopy
