@@ -38,7 +38,7 @@ def visualize_stats_table(stats_table):
         for i, v in enumerate(stats_df['Percent']):
             ax.text(i, v/2, str(v), ha='center', va='center')
 
-        plt.title(f'Percentage Distribution for {col_name}', fontsize=9)
+        plt.title(f'Percentage Distribution for {col_name}', fontsize=5)
         plt.xlabel(col_name)
         plt.ylabel('Percentage (%)')
         plt.xticks(rotation=30, ha='right')
