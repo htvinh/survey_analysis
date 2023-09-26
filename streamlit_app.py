@@ -35,8 +35,8 @@ def visualize_stats_table(stats_table):
         sns.barplot(x=stats_df.index, y=stats_df['Percent'], ax=ax, )
 
         # Set the fontsize for title, labels, and ticks
-        title_fontsize = 5
-        label_fontsize = 5
+        title_fontsize = 7
+        label_fontsize = 6
         ticks_fontsize = 5
 
         # Annotate each bar with the respective frequency value
@@ -50,6 +50,8 @@ def visualize_stats_table(stats_table):
         # Set the fontsize for x-ticks and y-ticks
         plt.xticks(rotation=30, ha='right', fontsize=ticks_fontsize)
         plt.yticks(fontsize=ticks_fontsize)
+
+        st.pyplot(fig)
 
 # Upload DATA MODEL Excel file
 data_model_name = st.sidebar.file_uploader("Upload DATA MODEL Excel file", type=["xlsx", "xls"])
