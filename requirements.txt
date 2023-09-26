@@ -3,7 +3,6 @@ pingouin
 factor_analyzer
 pandas
 numpy
-seaborn
 statsmodels
 python-docx
 openpyxl
