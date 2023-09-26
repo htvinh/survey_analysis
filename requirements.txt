@@ -14,4 +14,4 @@ pandas
 matplotlib
 sympy
 patsy
-semopy==2.3.10
+semopy==2.3.9
