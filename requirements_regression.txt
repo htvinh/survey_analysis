@@ -3,8 +3,15 @@ streamlit
 # factor_analyzer
 pandas
 # numpy
-# statsmodels
+statsmodels
 python-docx
 openpyxl
 seaborn
 scikit-learn
+numpy
+scipy
+pandas
+matplotlib
+sympy
+patsy
+semopy

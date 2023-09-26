@@ -1,10 +1,13 @@
+from pingouin import cronbach_alpha
+from factor_analyzer import FactorAnalyzer
 from docx import Document
 import pandas as pd
+import numpy as np
+import seaborn as sns
 import statsmodels.api as sm
+from sklearn.preprocessing import LabelEncoder
 
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-
+from semopy import Model as SEM_Model
 
 
 import os
@@ -124,6 +127,16 @@ def extract_selected_colums_data(df, selected_cols_names):
     data_to_extract = convert_likert_to_numerical(data_to_extract, extended_likert_mapping_all_languages)
     return data_to_extract
 
+# Convert values of dataframe to numeric
+def convert_values_to_numeric(df):
+    # Initialize the LabelEncoder
+    label_encoder = LabelEncoder()
+
+    # Encode each column in the DataFrame
+    for column in df.columns:
+        df[column] = label_encoder.fit_transform(df[column])
+    return df
+
 # Function to manually convert Likert-scale responses to numerical values
 # Function to manually convert Likert-scale responses to numerical values
 def convert_likert_to_numerical(df, likert_mapping):
@@ -137,8 +150,8 @@ def convert_likert_to_numerical(df, likert_mapping):
         df_numerical[column] = df_numerical[column].str.lower().map(str_likert_mapping)
         
     # Check for any remaining non-numeric values
-    # if df_numerical.applymap(np.isreal).all().all() == False:
-    #     raise AssertionError("Not all columns are numeric after mapping. Check your mapping and DataFrame.")
+    if df_numerical.applymap(np.isreal).all().all() == False:
+        raise AssertionError("Not all columns are numeric after mapping. Check your mapping and DataFrame.")
         
     del df
     return df_numerical
@@ -216,35 +229,10 @@ def remove_rows_with_missing_data_related_to_selected_cols(df, selected_cols_nam
     return df
 
 # Testing the reliability of the scale using Cronbach's alpha for independent columns
-def cronbach_alpha(items_df):
-    """
-    Compute Cronbach's Alpha for a set of items (columns) in a DataFrame.
-    
-    :param items_df: DataFrame, where each column is an item and rows are observations
-    :return: float, Cronbach's Alpha
-    """
-    # Number of items
-    item_count = len(items_df.columns)
-    
-    # Variance for every individual item
-    item_variances = items_df.var(axis=0)
-    
-    # Total variance for the item scores
-    total_var = item_variances.sum()
-    
-    # Sum of the item-pair covariances
-    item_covariances_sum = items_df.cov().sum().sum() - total_var
-    
-    # Cronbach's alpha formula
-    alpha = (item_count / (item_count - 1)) * (1 - (total_var / (total_var + item_covariances_sum)))
-    
-    return alpha
-
 def compute_cronbach_alpha(selected_data, independent_cols):
     # Calculate Cronbach's alpha
     overall_alpha = cronbach_alpha(selected_data)
-    overall_alpha = round(overall_alpha, 2)
-    overall_alpha_evaluation = interpret_alpha(overall_alpha)
+    overall_alpha_evaluation = interpret_alpha(overall_alpha[0])
 
     # Compute Cronbach Alpha for each Independent Variables
     alpha_table = []
@@ -258,9 +246,7 @@ def compute_cronbach_alpha(selected_data, independent_cols):
         data_of_this_variable = selected_data[col_names]
         # Calcul Alphe for this variable
         alpha_variable = cronbach_alpha(data_of_this_variable)
-        alpha_variable = round(alpha_variable, 2)
-        # alpha_evaluation = interpret_alpha(alpha_variable[0])
-        alpha_evaluation = interpret_alpha(alpha_variable)
+        alpha_evaluation = interpret_alpha(alpha_variable[0])
         alpha_table.append([alpha_variable, alpha_evaluation])
 
     # Print the result
@@ -282,59 +268,46 @@ def interpret_alpha(alpha):
     else:
         return "Unacceptable"
 
-def conduct_efa_analysis(selected_data):
-    columns = selected_data.columns
-    scaler = StandardScaler()
-    selected_data = scaler.fit_transform(selected_data)
-    # Initialize PCA
-    pca = PCA()
+# EFA analysis
+def do_efa_analysis(selected_data, num_factors):
+    fa = FactorAnalyzer(n_factors=num_factors, rotation='varimax')
+    fa.fit(selected_data)
+    factor_loadings = fa.loadings_
+    # print(f"EFA loadings:\n{loadings}")
+    # Visualize the factor loadings
+    loadings_df = pd.DataFrame(factor_loadings, columns=[f'Factor {i+1}' for i in range(num_factors)], index=selected_data.columns)
+    # Save the EFA analysis to an Excel file
+    filename = 'EFA_Analysis'
+    # Set index=False to exclude the DataFrame index
+    filename = 'EFA_Analysis'
+    excel_file_path = f'{output_path}{filename}.xlsx'
+    loadings_df.to_excel(excel_file_path, index=True)  
 
-    # Fit PCA to your data
-    pca.fit(selected_data)
-    
-    # Create a DataFrame to hold the PCA results
-    explained_variance_ratio = pca.explained_variance_ratio_
-    components = pca.components_
+    return loadings_df
 
-    # Creating the PCA results DataFrame
-    pca_results_df = pd.DataFrame(data=components, columns=columns)
-    pca_results_df.index = [f'PC{i}' for i in range(1, len(components) + 1)]
-    pca_results_df['Explained Variance Ratio'] = explained_variance_ratio
-
-    del selected_data
-    return pca_results_df
-
-def interpret_pca_results(pca_results_df, loading_threshold=0.5):
+def interpret_based_on_loadings(loadings_df, threshold=0.5):
     interpretations = []
+    for factor in loadings_df.columns:
+        strong_vars = loadings_df.loc[loadings_df[factor].abs() >= threshold].index.tolist()
+        
+        if strong_vars:
+            sentence = f"In simple terms, '{factor}' is mainly about {', '.join(strong_vars)}."
+            interpretations.append({'Factor': factor, 'Interpretation': sentence})
 
-    # Check if 'Explained Variance Ratio' exists in the DataFrame
-    if 'Explained Variance Ratio' not in pca_results_df.columns:
-        return ["Error: 'Explained Variance Ratio' column not found in the provided DataFrame."]
+    interpretation_df = pd.DataFrame(interpretations)
+    return interpretation_df
 
-    # Loop through each principal component and interpret
-    for index, row in pca_results_df.iterrows():
-        interpretations.append(f"Looking at {index}:")
+def recommendations_based_on_loadings(loadings_df, threshold=0.5):
+    recommendations = []
+    for factor in loadings_df.columns:
+        strong_vars = loadings_df.loc[loadings_df[factor].abs() >= threshold].index.tolist()
+        
+        if strong_vars:
+            advice = f"To improve in '{factor}', consider focusing on {', '.join(strong_vars)}."
+            recommendations.append({'Factor': factor, 'Recommendation': advice})
 
-        # Explained Variance Ratio
-        interpretations.append(f"  - This component represents {row['Explained Variance Ratio']*100:.2f}% of the information (variance) in the data.")
-
-        # Loadings
-        # Check if 'Explained Variance Ratio' exists in the Series before dropping it
-        # if 'Explained Variance Ratio' in row.index:
-        #     significant_loadings = row[row.abs() >= loading_threshold].drop('Explained Variance Ratio')
-        # else:
-        significant_loadings = row[row.abs() >= loading_threshold]
-
-        interpretations.append("  - This component is mainly influenced by:")
-        if significant_loadings.empty:
-            interpretations.append("    No significant influence from any specific variable.")
-        else:
-            for var, loading in significant_loadings.items():
-                influence_type = "positively" if loading > 0 else "negatively"
-                interpretations.append(f"    {var}, which {influence_type} influences this component.")
-
-        interpretations.append("")
-    return interpretations
+    recommendation_df = pd.DataFrame(recommendations)
+    return recommendation_df
 
     
 # Pearson correlation matrix
@@ -383,7 +356,6 @@ def interpret_and_recommend_correlation(correlation_table, threshold=0.5):
     recommendation_df = pd.DataFrame(recommendations)
 
     return interpretation_df, recommendation_df
-
 
 # Regression Analysis with OLS
 def do_multivariate_regression_analysis_with_OLS(target_variable_data, independent_variable_data, output_filename):
@@ -573,4 +545,152 @@ def test_if_factor_has_effect_on_target(target_variable_data, independent_variab
     print(all_results)
 
     return all_results
+
+
+
+# Structural Equation Modeling (SEM) 
+
+# Create latent construct according to variables/cols defined in the data model.
+def create_latent_construct(selected_cols):
+    constructs =''
+    for col in selected_cols:
+        construct = format_name(col.get('name'))
+        num_items = col.get('number_questions')
+        col_index_from = int(col.get('col_index_from'))
+        # items = [f"{construct}_Q{col_index_from + i}" for i in range(num_items)]
+        items = [f"{construct}_Q{i+1}" for i in range(num_items)]
+        constructs += f"{construct} =~ {' + '.join(items)}\n"
+
+    return constructs
+
+def format_name(name):
+    """Format the name by removing spaces and special characters."""
+    return name.replace(" ", "_").replace("(", "").replace(")", "")
+
+def format_column_names(df):
+    """Format the column names of a DataFrame."""
+    formatted_columns = {col: format_name(col) for col in df.columns}
+    return df.rename(columns=formatted_columns)
+
+# Structural Equation Modeling (SEM)
+def conduct_sem_analysis(independent_cols, target_cols, independent_data, target_data):
+    # Format the column names of the independent_data and target_data DataFrames
+    independent_data = format_column_names(independent_data)
+    target_data = format_column_names(target_data)
+    # print(target_data)
+    # print(new_target_cols)
+    
+    # Generate the measurement model string for independent variables (latent constructs)
+    independent_constructs = create_latent_construct(independent_cols)
+
+    # Generate the measurement model string for dependent variables (latent constructs)
+    dependent_constructs = create_latent_construct(target_cols)
+
+    # Initialize the structural model string
+    structural_model = ""
+    
+    # Define the relationships between independent and dependent latent constructs
+    for target_col in target_cols:
+        target_construct = format_name(target_col.get('name'))
+        independent_constructs_list = [format_name(col.get('name')) for col in independent_cols]
+        structural_model += f"{target_construct} ~ {' + '.join(independent_constructs_list)}\n"
+    
+    # Combine measurement and structural model strings to create the full SEM syntax string
+    sem_model_spec = f'\n{independent_constructs}\n{dependent_constructs}\n{structural_model}\n'
+
+    # Print the generated SEM syntax string
+    print(sem_model_spec)
+
+    # Assuming SEM_Model is properly imported and defined
+    sem_model = SEM_Model(sem_model_spec)
+
+    # Join the formatted independent_data and target_data DataFrames
+    df = independent_data.join(target_data, how='inner')
+    # print(df)
+
+    # Fit the SEM model to the survey data
+    sem_model.fit(df)
+
+    # Retrieve the results using the inspect method
+    results_df = sem_model.inspect()
+
+    # Display the results
+    # print(results_df)
+
+    # Define the list of independent factors and dependent variables in your model
+    independent_factors = [format_name(col.get('name')) for col in independent_cols]
+    dependent_variables = [format_name(col.get('name')) for col in target_cols]
+
+    # Filter results_df to only include rows representing relationships between independent factors and dependent variables
+    filtered_results_df = results_df[
+        results_df.apply(lambda row: (row['lval'] in independent_factors and row['rval'] in dependent_variables) or
+                                      (row['lval'] in dependent_variables and row['rval'] in independent_factors), axis=1)]
+
+    # Display the filtered results
+    print(filtered_results_df)
+
+    # Save the Correlation Table to an Excel file
+    # Set index=False to exclude the DataFrame index
+    filename = 'SEM_Results'
+    excel_file_path = f'{output_path}{filename}.xlsx'
+    results_df.to_excel(excel_file_path, index=True)  
+
+    del df, # independent_data, target_data
+    return filtered_results_df
+
+# Interpret SEM results
+def interpret_sem_results(sem_results):
+    # Define significance level
+    alpha = 0.05
+
+    # Initialize an empty list to store interpretations
+    interpretations = []
+
+    # Iterate over rows of the results DataFrame
+    for index, row in sem_results.iterrows():
+        # Retrieve relevant information from the row
+        lval = row['lval']
+        rval = row['rval']
+        op = row['op']
+        
+        # Check if p_value is a valid number
+        try:
+            p_value = float(row['p-value'])
+            estimate = float(row['Estimate'])
+        except ValueError:
+            print(f"Warning: Unable to convert values to float for {lval} {op} {rval}. Skipping interpretation.")
+            continue  # Skip to the next iteration
+        
+        # Check if the relationship is between a factor and a dependent variable
+        # You might need to customize this condition based on your specific model and variable names
+        if op == '~':
+            relationship = "influences"
+        else:
+            continue  # Skip rows that do not represent relationships between factors and dependent variables
+        
+        # Check the significance of the parameter
+        if p_value <= alpha:
+            significance = "statistically significant"
+        else:
+            significance = "not statistically significant"
+
+        # Determine the direction of the relationship
+        if estimate > 0:
+            direction = "positive"
+        elif estimate < 0:
+            direction = "negative"
+        else:
+            direction = "neutral"
+
+        # Build the interpretation string
+        # interpretation = f"{lval} {relationship} {rval} in a {significance} (p-value= {p_value}) and {direction} (estimate= {estimate}) manner. "
+        interpretation = (f"{rval} has a {significance} "
+                  f"(p-value= {p_value:.3f}) and {direction} "
+                  f"(estimate= {estimate:.2f}) relationship with {lval}.")
+        
+        # Append the interpretation to the list
+        interpretations.append(interpretation)
+
+    return interpretations
+
 
