@@ -7,7 +7,7 @@ import seaborn as sns
 import statsmodels.api as sm
 from sklearn.preprocessing import LabelEncoder
 
-# from semopy import Model as SEM_Model
+from semopy import Model as SEM_Model
 
 
 import os
