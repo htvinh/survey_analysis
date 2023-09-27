@@ -341,6 +341,10 @@ if data_model_name is not None:
             testing_results = test_if_factor_has_effect_on_target(target_data, variable_data, independent_cols)
             st.write('\nTesting Results:\n', testing_results)
 
+    st.write('\n\n=========================    The END   ==========================\n')
+    st.subheader('Try:')
+    st.header('Survey Data Analysis with SEM')
+    st.write('https://sem-analysis.streamlit.app/')
 
 
     st.write('\n\n\n\n\n==============================================================================\n')

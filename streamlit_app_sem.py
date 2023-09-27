@@ -1,4 +1,4 @@
-from data_analysis import *
+from data_analysis_sem import *
 
 import streamlit as st
 import matplotlib.pyplot as plt
@@ -25,7 +25,7 @@ st.write('Contact: ho.tuong.vinh@gmail.com')
 st.write('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. USE WITH CAUTION!')
 
 
-is_visualized = True # True False
+is_visualized = False # True False
 is_sem_analysis = True # True False
 
 def visualize_stats_table(stats_table):
@@ -158,7 +158,7 @@ if data_model_name is not None:
         output_file_name = 'Demographic'
         demographic_stats_table = compute_selected_cols_statistics(data, selected_cols_names, output_file_name)
         
-        st.header('Statistics of Demographic Columns')
+        st.subheader('Statistics of Demographic Columns')
         # Create a download button for the Excel file
         filename = 'Demographic_Stats.xlsx'
         st.download_button(
@@ -182,7 +182,7 @@ if data_model_name is not None:
         selected_cols_names = independent_cols_names
         output_file_name = 'Independent'
         independent_stats_table = compute_selected_cols_statistics(data, selected_cols_names, output_file_name)
-        st.header('Statistics of Independent Columns')
+        st.subheader('Statistics of Independent Columns')
 
         # Create a download button for the Excel file
         filename = 'Independent_Stats.xlsx'
@@ -206,7 +206,7 @@ if data_model_name is not None:
         selected_cols_names = target_cols_names
         output_file_name = 'Target'
         target_stats_table = compute_selected_cols_statistics(data, selected_cols_names, output_file_name)
-        st.header('Statistics of Target Columns')
+        st.subheader('Statistics of Target Columns')
 
         # Create a download button for the Excel file
         filename = 'Target_Stats.xlsx'
@@ -237,7 +237,7 @@ if data_model_name is not None:
         target_data = extract_selected_colums_data(data, selected_cols_names)
         # st.write(target_data)
 
-        st.header("Testing the reliability of the scale using Cronbach's alpha for independent columns")
+        st.header("Testing the reliability using Cronbach's alpha for independent columns")
         # Calculate Cronbach's alpha
         overall_alpha, alpha_table = compute_cronbach_alpha(independent_data, independent_cols)
         # Print the result
@@ -247,14 +247,14 @@ if data_model_name is not None:
         st.write(f"Cronbach's Alpha for each independent variables:")
         for idx, col in enumerate(independent_cols):
             col_name = col.get('name')
-            st.markdown(f'- **{col_name}**:  {alpha_table[idx]}')
+            alpha_idx = alpha_table[idx]
+            st.markdown(f'- **{col_name}**:  {alpha_idx}')
 
 
         # EFA Analysis
-        selected_data = independent_data
-        num_factors = 5
-        efa_results = do_efa_analysis(selected_data, num_factors)
-        st.header('EFA analysis')
+        # num_factors = 5
+        efa_results = conduct_efa_analysis(independent_data) 
+        st.header('EFA analysis using PCA')
 
         # Create a download button for the Excel file
         filename = 'EFA_Analysis.xlsx'
@@ -270,23 +270,16 @@ if data_model_name is not None:
         print('\nEFA analysis.   Done')
 
         # Interpret EFA Results
-        # loadings_df = do_efa_analysis(selected_data, num_factors)
-        efa_interpretation_df = interpret_based_on_loadings(efa_results)
-        print(efa_interpretation_df)
-        st.write("### Simple Interpretation")
-        for index, row in efa_interpretation_df.iterrows():
-            st.write(f"**{index+1}. {row['Factor']}**: {row['Interpretation']}")
-
-        # Recommendation
-        recommendation_df = recommendations_based_on_loadings(efa_results, threshold=0.5)
-        st.write("### Recommendations")
-        for index, row in recommendation_df.iterrows():
-            st.write(f"**{index+1}. {row['Factor']}**: {row['Recommendation']}")
-
+        efa_interpretation = interpret_pca_results(efa_results)
+        print(efa_interpretation)
+        st.subheader("### Simple Interpretation")
+        # Display the interpretations in Streamlit
+        for line in efa_interpretation:
+            st.text(line)
         del efa_results
 
         # Compute Correclation Matrix
-        correlation_table = compute_correlation(selected_data)
+        correlation_table = compute_correlation(independent_data)
         st.header('Corellation Analsyis By Pearson Method')
 
         # Create a download button for the Excel file
@@ -302,61 +295,31 @@ if data_model_name is not None:
 
         # Interpretation et recommendation 
         corr_interpretation_df, corr_recommendation_df = interpret_and_recommend_correlation(correlation_table, threshold=0.5)
-        st.write("### Correlation Interpretations")
+        st.subheader("### Correlation Interpretations")
         for index, row in corr_interpretation_df.iterrows():
             st.write(f"**{index+1}. {row['Variables']} (Correlation: {row['Correlation']:.2f})**: {row['Interpretation']}")
 
-        st.write("### Recommendations Based on Correlations")
-        for index, row in corr_recommendation_df.iterrows():
-            st.write(f"**{index+1}. {row['Variables']}**: {row['Recommendation']}")
+        # st.subheader("### Recommendations Based on Correlations")
+        # for index, row in corr_recommendation_df.iterrows():
+        #     st.write(f"**{index+1}. {row['Variables']}**: {row['Recommendation']}")
 
         del correlation_table
-
-        # Make Multivarate Regression Analysis
-        st.header('Multivariate Regression Analysis')
-        for idx, target_col in enumerate(target_cols_names):
-            st.write('\n========================================')
-            st.write(f'Regression Analysis for Target {target_cols_names[idx]}')
-            target_data = extract_selected_colums_data(data, [target_cols_names[idx]])
-            output_filename = f'Multivariate_Regression_Summary_{idx+1}.docx'
-            regression_results = do_multivariate_regression_analysis_with_OLS(target_data, independent_data, output_filename)
-            summary_result = regression_results.summary() 
-
-            # Create a download button for the Excel file
-            filename = output_filename
-            st.download_button(
-                label="Download Multivariate Regression Analysis Report Docx File",
-                file_name = filename,
-                data=open(f'./output/{filename}', 'rb').read(),
-                key=f'excel-download-button-reg-{idx+1}'
-            )
-            st.write(summary_result)
-
-            # Interpretation and recommendations
-            reg_interpretation, reg_recommendation = interpret_and_recommend_regression_with_OLS(regression_results)
-            # Display in Streamlit
-            st.write("### Regression Interpretations")
-            st.write(reg_interpretation)
-
-        # Testing hypothesis: if a factor/independent variable has effect on the dependent variable
-        st.header('Testing if a factor/independent variable has effect on the dependent variable.')
-        st.write('The F-test (Linear Regression) helps you determine if the factor you are studying has a significant impact on the dependent variable you are measuring.')
-        for idx, target_col in enumerate(target_cols_names):
-            st.write('\n========================================')
-            st.write(f'Testing Effect hypothesis for Target {target_cols_names[idx]}')
-            target_data = extract_selected_colums_data(data, [target_cols_names[idx]])
-            variable_data = independent_data
-            testing_results = test_if_factor_has_effect_on_target(target_data, variable_data, independent_cols)
-            st.write('\nTesting Results:\n', testing_results)
-
 
         # CONDUCT SEM analysis
         st.header('Conduct SEM (Structural Equation Modeling)')
         target_data = extract_selected_colums_data(data, selected_cols_names)
-        sem_results = conduct_sem_analysis(independent_cols, target_cols, independent_data, target_data)
-        st.write('SEM Results')
+        sem_results, sem_model_spec_to_display = conduct_sem_analysis(independent_cols, target_cols, independent_data, target_data)
+        st.subheader('SEM Model Spefication')
+        st.write('Independent Constructs')
+        st.code(sem_model_spec_to_display[0], language="plaintext")
+        st.write('Dependent Constructs')
+        st.code(sem_model_spec_to_display[1], language="plaintext")
+        st.write('Structural Model')
+        st.code(sem_model_spec_to_display[2], language="plaintext")
+
+        st.subheader('SEM Results')
         st.write(sem_results)
-        st.write('\n\nInterpretation')
+        st.subheader('\n\nInterpretation')
         sem_results = interpret_sem_results(sem_results)
         st.write(sem_results)
 

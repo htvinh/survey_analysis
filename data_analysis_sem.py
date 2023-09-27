@@ -1,11 +1,5 @@
-# from pingouin import cronbach_alpha
-# from factor_analyzer import FactorAnalyzer
 from docx import Document
 import pandas as pd
-# import numpy as np
-# import seaborn as sns
-# import statsmodels.api as sm
-# from sklearn.preprocessing import LabelEncoder
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -178,8 +172,6 @@ extended_likert_mapping_all_languages = {
     5: 5,
     6: 6,
     7: 7,
-    8: 8,
-    9: 9,
 }
 
 # Convert dataframe to numerical, keeping ordinality
@@ -400,8 +392,7 @@ def create_latent_construct(selected_cols):
     for col in selected_cols:
         construct = format_name(col.get('name'))
         num_items = col.get('number_questions')
-        col_index_from = int(col.get('col_index_from'))
-        # items = [f"{construct}_Q{col_index_from + i}" for i in range(num_items)]
+        # col_index_from = int(col.get('col_index_from'))
         items = [f"{construct}_Q{i+1}" for i in range(num_items)]
         constructs += f"{construct} =~ {' + '.join(items)}\n"
 
@@ -421,8 +412,6 @@ def conduct_sem_analysis(independent_cols, target_cols, independent_data, target
     # Format the column names of the independent_data and target_data DataFrames
     independent_data = format_column_names(independent_data)
     target_data = format_column_names(target_data)
-    # print(target_data)
-    # print(new_target_cols)
     
     sem_model_spec_to_display = []
 
@@ -434,15 +423,28 @@ def conduct_sem_analysis(independent_cols, target_cols, independent_data, target
     dependent_constructs = create_latent_construct(target_cols)
     sem_model_spec_to_display.append(dependent_constructs)
 
+    # Initialize a set to store the unique independent constructs that influence the target constructs
+    influencing_independent_constructs_set = set()
+
     # Initialize the structural model string
     structural_model = ""
     
     # Define the relationships between independent and dependent latent constructs
     for target_col in target_cols:
+        influenced_by = target_col.get('influenced_by_independent_factors')
+        influenced_by_independent_constructs = influenced_by.split(';')
+        influenced_by_independent_constructs = [item.strip().replace(' ', '_') for item in influenced_by_independent_constructs]
+        
+        # Add the influenced_by_independent_constructs to the set
+        influencing_independent_constructs_set.update(influenced_by_independent_constructs)
+
         target_construct = format_name(target_col.get('name'))
-        independent_constructs_list = [format_name(col.get('name')) for col in independent_cols]
-        structural_model += f"{target_construct} ~ {' + '.join(independent_constructs_list)}\n"
-    
+        structural_model += f"{target_construct} ~ {' + '.join(influenced_by_independent_constructs)}\n"
+
+    # Convert the set to a list
+    influencing_independent_constructs_list = list(influencing_independent_constructs_set)
+    print(influencing_independent_constructs_list)
+
     sem_model_spec_to_display.append(structural_model)
     # Combine measurement and structural model strings to create the full SEM syntax string
     sem_model_spec = f'\n{independent_constructs}\n{dependent_constructs}\n{structural_model}\n'
@@ -455,7 +457,9 @@ def conduct_sem_analysis(independent_cols, target_cols, independent_data, target
 
     # Join the formatted independent_data and target_data DataFrames
     df = independent_data.join(target_data, how='inner')
-    # print(df)
+
+    # Replace spaces with underscores in column names
+    df.columns = df.columns.str.replace(' ', '_')
 
     # Fit the SEM model to the survey data
     sem_model.fit(df)
@@ -542,4 +546,86 @@ def interpret_sem_results(sem_results):
 
     return interpretations
 
+
+
+
+def conduct_sem_analysis_2(independent_cols, target_cols, independent_data, target_data):
+    # Format the column names of the independent_data and target_data DataFrames
+    independent_data = format_column_names(independent_data)
+    target_data = format_column_names(target_data)
+    # print(target_data)
+    # print(new_target_cols)
+    
+    sem_model_spec_to_display = []
+
+    # Generate the measurement model string for independent variables (latent constructs)
+    independent_constructs = create_latent_construct(independent_cols)
+    sem_model_spec_to_display.append(independent_constructs)
+
+    # Generate the measurement model string for dependent variables (latent constructs)
+    dependent_constructs = create_latent_construct(target_cols)
+    sem_model_spec_to_display.append(dependent_constructs)
+
+    # Initialize the structural model string
+    structural_model = ""
+    
+    # Define the relationships between independent and dependent latent constructs
+    for target_col in target_cols:
+        influenced_by = target_col.get('influenced_by_independent_factors')
+        influenced_by_independent_constructs = influenced_by.split(';')
+        influenced_by_independent_constructs = [item.strip() for item in influenced_by_independent_constructs]
+        print(influenced_by_independent_constructs)
+
+    for target_col in target_cols:
+        target_construct = format_name(target_col.get('name'))
+        influenced_by = target_col.get('influenced_by_independent_factors')
+        influenced_by_independent_constructs = influenced_by.split(';')
+        influenced_by_independent_constructs = [item.strip() for item in influenced_by_independent_constructs]
+        
+        independent_constructs_list = [format_name(col.get('name')) for col in independent_cols]
+        structural_model += f"{target_construct} ~ {' + '.join(independent_constructs_list)}\n"
+    
+    sem_model_spec_to_display.append(structural_model)
+    # Combine measurement and structural model strings to create the full SEM syntax string
+    sem_model_spec = f'\n{independent_constructs}\n{dependent_constructs}\n{structural_model}\n'
+
+    # Print the generated SEM syntax string
+    print(sem_model_spec)
+
+    # Assuming SEM_Model is properly imported and defined
+    sem_model = SEM_Model(sem_model_spec)
+
+    # Join the formatted independent_data and target_data DataFrames
+    df = independent_data.join(target_data, how='inner')
+    # print(df)
+
+    # Fit the SEM model to the survey data
+    sem_model.fit(df)
+
+    # Retrieve the results using the inspect method
+    results_df = sem_model.inspect()
+
+    # Display the results
+    # print(results_df)
+
+    # Define the list of independent factors and dependent variables in your model
+    independent_factors = [format_name(col.get('name')) for col in independent_cols]
+    dependent_variables = [format_name(col.get('name')) for col in target_cols]
+
+    # Filter results_df to only include rows representing relationships between independent factors and dependent variables
+    filtered_results_df = results_df[
+        results_df.apply(lambda row: (row['lval'] in independent_factors and row['rval'] in dependent_variables) or
+                                      (row['lval'] in dependent_variables and row['rval'] in independent_factors), axis=1)]
+
+    # Display the filtered results
+    print(filtered_results_df)
+
+    # Save the Correlation Table to an Excel file
+    # Set index=False to exclude the DataFrame index
+    filename = 'SEM_Results'
+    excel_file_path = f'{output_path}{filename}.xlsx'
+    results_df.to_excel(excel_file_path, index=True)  
+
+    del df, # independent_data, target_data
+    return filtered_results_df, sem_model_spec_to_display
 
