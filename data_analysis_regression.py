@@ -2,9 +2,10 @@ from docx import Document
 import pandas as pd
 import statsmodels.api as sm
 
-from sklearn.decomposition import PCA
+from sklearn.decomposition import FactorAnalysis
 from sklearn.preprocessing import StandardScaler
 
+import numpy as np
 
 
 import os
@@ -283,58 +284,60 @@ def interpret_alpha(alpha):
         return "Unacceptable"
 
 def conduct_efa_analysis(selected_data):
-    columns = selected_data.columns
+    # Standardize the data
     scaler = StandardScaler()
-    selected_data = scaler.fit_transform(selected_data)
-    # Initialize PCA
-    pca = PCA()
+    selected_data_standardized = scaler.fit_transform(selected_data)
 
-    # Fit PCA to your data
-    pca.fit(selected_data)
+    # Fit Factor Analysis model to the data to find eigenvalues
+    fa = FactorAnalysis()
+    fa.fit(selected_data_standardized)
+    eigenvalues = np.linalg.eigvals(fa.get_covariance())
     
-    # Create a DataFrame to hold the PCA results
-    explained_variance_ratio = pca.explained_variance_ratio_
-    components = pca.components_
+    # Determine the number of factors to retain based on eigenvalues greater than one
+    num_factors = np.sum(eigenvalues > 1)
 
-    # Creating the PCA results DataFrame
-    pca_results_df = pd.DataFrame(data=components, columns=columns)
-    pca_results_df.index = [f'PC{i}' for i in range(1, len(components) + 1)]
-    pca_results_df['Explained Variance Ratio'] = explained_variance_ratio
+    # Initialize Factor Analysis
+    fa = FactorAnalysis(n_components=num_factors)
 
-    del selected_data
-    return pca_results_df
+    # Fit Factor Analysis to the standardized data
+    fa.fit(selected_data_standardized)
 
-def interpret_pca_results(pca_results_df, loading_threshold=0.5):
-    interpretations = []
+    # Loadings are the coefficients of the original variables
+    loadings = pd.DataFrame(fa.components_, columns=selected_data.columns)
 
-    # Check if 'Explained Variance Ratio' exists in the DataFrame
-    if 'Explained Variance Ratio' not in pca_results_df.columns:
-        return ["Error: 'Explained Variance Ratio' column not found in the provided DataFrame."]
+    # Save the loadings to an Excel file
+    filename = 'EFA_Analysis'
+    excel_file_path = f'{filename}.xlsx'
+    loadings.to_excel(excel_file_path, index=True)  
 
-    # Loop through each principal component and interpret
-    for index, row in pca_results_df.iterrows():
-        interpretations.append(f"Looking at {index}:")
+    return loadings
 
-        # Explained Variance Ratio
-        interpretations.append(f"  - This component represents {row['Explained Variance Ratio']*100:.2f}% of the information (variance) in the data.")
+def interpret_efa_results(efa_results, threshold_high, threshold_moderate):
+   # Number of factors extracted
+    num_factors = efa_results.shape[0]
+    
+    # Average loading
+    avg_loading = efa_results.abs().mean().mean()
 
-        # Loadings
-        # Check if 'Explained Variance Ratio' exists in the Series before dropping it
-        # if 'Explained Variance Ratio' in row.index:
-        #     significant_loadings = row[row.abs() >= loading_threshold].drop('Explained Variance Ratio')
-        # else:
-        significant_loadings = row[row.abs() >= loading_threshold]
+    # Identify questions with low loadings on all factors
+    threshold_low = threshold_moderate  # Threshold for low loadings
+    low_loading_questions = efa_results.columns[(efa_results.abs() < threshold_low).all(axis=0)]
+    
+    # Interpretation
+    interpretation = []
+    interpretation.append(f"The analysis identified {num_factors} latent main factors influencing the responses.")
+    
+    if avg_loading > threshold_high:
+        interpretation.append("Most questions have a strong association with at least one of the identified factors.")
+    elif avg_loading > threshold_moderate:
+        interpretation.append("There are moderate associations between questions and the identified factors.")
+    else:
+        interpretation.append("The associations between most questions and the identified factors are relatively weak.")
 
-        interpretations.append("  - This component is mainly influenced by:")
-        if significant_loadings.empty:
-            interpretations.append("    No significant influence from any specific variable.")
-        else:
-            for var, loading in significant_loadings.items():
-                influence_type = "positively" if loading > 0 else "negatively"
-                interpretations.append(f"    {var}, which {influence_type} influences this component.")
-
-        interpretations.append("")
-    return interpretations
+    if not low_loading_questions.empty:
+        interpretation.append(f"The following questions have weak associations with all identified factors and may need to be revised or removed: {', '.join(low_loading_questions)}.")
+    
+    return interpretation
 
     
 # Pearson correlation matrix
@@ -350,39 +353,41 @@ def compute_correlation(selected_data):
 
     return correlation_table
 
-def interpret_and_recommend_correlation(correlation_table, threshold=0.5):
-    interpretations = []
-    recommendations = []
+def interpret_correlation(correlation_table, threshold_strong,threshold_moderate):
+    # Remove self-correlations by setting diagonal to NaN
+    for i in range(correlation_table.shape[0]):
+        correlation_table.iloc[i, i] = np.nan
+    
+    # Compute the average absolute correlation
+    avg_correlation = correlation_table.abs().mean().mean()
 
-    # Loop over the upper triangle of the correlation matrix
-    for i, row_var in enumerate(correlation_table.index):
-        for j, col_var in enumerate(correlation_table.columns[i+1:]):  # i+1 to skip self-correlation
-            corr_value = correlation_table.loc[row_var, col_var]
+    # Identify variables with low correlations with others
+    threshold_low = threshold_moderate  # Threshold for low correlation
+    low_correlation_variables = correlation_table.columns[(correlation_table.abs().mean() < threshold_low)]
+    
+    # Identify pairs of variables with high correlations
+    threshold_high = threshold_strong  # Threshold for high correlation
+    high_correlation_pairs = [(var1, var2) for var1 in correlation_table.columns for var2 in correlation_table.columns if (correlation_table.loc[var1, var2] > threshold_high) and (var1 != var2)]
+    
+    # Interpretation
+    interpretation = []
+    if avg_correlation > threshold_strong:
+        comment = "Most variables in the dataset are strongly related to each other."
+    elif avg_correlation > threshold_moderate:
+        comment ="There are moderate relationships between variables in the dataset."
+    else:
+        comment = "The variables in the dataset are mostly weakly related or unrelated to each other."
+    interpretation.append(comment)
+    
+    if not low_correlation_variables.empty:
+        interpretation.append(f"The following variables have weak relationships with most other variables: {', '.join(low_correlation_variables)}. ")
+        interpretation.append('Consider reviewing their relevance to the study.')
+    if high_correlation_pairs:
+        interpretation.append(f"Some pairs of variables are highly correlated, indicating potential redundancy. ") 
+        interpretation.append(f"These pairs are: " + ', '.join([f"({var1}, {var2})" for var1, var2 in high_correlation_pairs]) + ".")
+        interpretation.append('Consider reviewing whether both variables in each pair are necessary, or whether dimensionality reduction or feature engineering might be appropriate.')
+    return interpretation
 
-            # Only consider strong correlations (positive or negative)
-            if abs(corr_value) >= threshold:
-                if corr_value > 0:
-                    interpretation = f"{row_var} and {col_var} have a strong positive relationship."
-                    recommendation = f"Improving {row_var} could also positively impact {col_var}, and vice versa."
-                else:
-                    interpretation = f"{row_var} and {col_var} have a strong negative relationship."
-                    recommendation = f"Focusing on {row_var} might have the opposite effect on {col_var}, so be cautious."
-
-                interpretations.append({
-                    'Variables': f"{row_var} & {col_var}",
-                    'Correlation': corr_value,
-                    'Interpretation': interpretation
-                })
-
-                recommendations.append({
-                    'Variables': f"{row_var} & {col_var}",
-                    'Recommendation': recommendation
-                })
-
-    interpretation_df = pd.DataFrame(interpretations)
-    recommendation_df = pd.DataFrame(recommendations)
-
-    return interpretation_df, recommendation_df
 
 
 # Regression Analysis with OLS

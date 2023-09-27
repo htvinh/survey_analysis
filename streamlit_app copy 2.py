@@ -251,8 +251,8 @@ if data_model_name is not None:
 
 
         # EFA Analysis
-        efa_results = conduct_efa_analysis(independent_data)
-        st.header(f'Conduct EFA analysis (factors automatically detected according to eigenvalues)')
+        efa_results = conduct_efa_analysis(independent_data) 
+        st.header('EFA analysis using PCA')
 
         # Create a download button for the Excel file
         filename = 'EFA_Analysis.xlsx'
@@ -268,15 +268,14 @@ if data_model_name is not None:
         print('\nEFA analysis.   Done')
 
         # Interpret EFA Results
-        threshold_high = 0.6  # Threshold for high loadings
-        threshold_moderate = 0.3   # Threshold for low loadings
-        efa_interpretation = interpret_efa_results(efa_results, threshold_high, threshold_moderate)
+        efa_interpretation = interpret_pca_results(efa_results)
         print(efa_interpretation)
-        st.subheader(f"EFA - Simple Interpretation with threshold_high= {threshold_high} and threshold_moderate= {threshold_moderate}")
+        st.subheader("### Simple Interpretation")
         # Display the interpretations in Streamlit
-        # st.write(efa_interpretation)
-        for interpretation in efa_interpretation:
-            st.write(interpretation)
+        for line in efa_interpretation:
+            st.text(line)
+        del efa_results
+
 
         # Compute Correclation Matrix
         correlation_table = compute_correlation(independent_data)
@@ -294,11 +293,14 @@ if data_model_name is not None:
         print('\Correlation analysis.   Done')
 
         # Interpretation et recommendation 
-        threshold_strong = 0.7  # Threshold for strong correlation
-        threshold_moderate = 0.3    # Threshold for weak correlation
-        corr_interpretation_df = interpret_correlation(correlation_table, threshold_strong,threshold_moderate)
-        st.subheader(f"Correlation Interpretations with threshold_strong= {threshold_strong} and threshold_weak= {threshold_moderate}")
-        st.write(corr_interpretation_df)
+        corr_interpretation_df, corr_recommendation_df = interpret_and_recommend_correlation(correlation_table, threshold=0.5)
+        st.write("### Correlation Interpretations")
+        for index, row in corr_interpretation_df.iterrows():
+            st.write(f"**{index+1}. {row['Variables']} (Correlation: {row['Correlation']:.2f})**: {row['Interpretation']}")
+
+        # st.write("### Recommendations Based on Correlations")
+        # for index, row in corr_recommendation_df.iterrows():
+        #     st.write(f"**{index+1}. {row['Variables']}**: {row['Recommendation']}")
 
         del correlation_table
 
