@@ -3,7 +3,7 @@ streamlit
 # factor_analyzer
 pandas
 # numpy
-# statsmodels
+statsmodels
 python-docx
 openpyxl
 seaborn
