@@ -6,15 +6,20 @@ import seaborn as sns
 
 st.title('SURVEY DATA ANALYSIS')
 
-st.write('Download these 2 sample files to prepare your files.')
-st.write('Need only to adapt the Data Model according to your survey structure.')
-st.write('For the survey data, only need to download as Excel from Google Forms.')
-
+st.subheader('2 Steps To Do:')
+st.write('Step 1:')
+st.write('Download Data Model Sample file')
 # To link to Data Model Sample Excel file
 data_model_sample_url = 'https://docs.google.com/spreadsheets/d/19ymgAkEUgvux6z7ykWHnlmtfwu0h3iMa/edit?usp=drive_link&ouid=103775647130982487748&rtpof=true&sd=true'
 st.write(f'[Data Model Sample file download]({data_model_sample_url})')
+st.write('Customize this Excel file according to your model and questionnaire structure.')
+
+st.write('Step 2:')
+st.write('Upload your data model. Then, the tool will ask to upload the Survey data.')
+st.write('Upload the survey data (Excel file downloaded from Google Forms.)')
 
 # To link to Survey Data Sample Excel file
+st.header('Survey Data Samples')
 data_sample_url = 'https://docs.google.com/spreadsheets/d/1A-hKivtLFUJeOpLolfKy5Pd_rUDfsPY1/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
 st.write(f'[Survey Data Sample file download]({data_sample_url})')
 data_sample_url = 'https://docs.google.com/spreadsheets/d/1AATsrch7RkOoD-IEhEm-wBmb1n6kOsZd/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
