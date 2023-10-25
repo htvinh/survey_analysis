@@ -1,10 +1,11 @@
+wheel
 streamlit
-# pingouin
-# factor_analyzer
-pandas
-numpy
-statsmodels
 python-docx
 openpyxl
 seaborn
 scikit-learn
+matplotlib
+# pygraphviz
+graphviz
+semopy
+networkx
