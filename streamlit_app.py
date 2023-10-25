@@ -120,6 +120,7 @@ if model_file_path is not None:
     st.image(graph_path) #, caption='Model Specification Graph')
 
     # Upload Data
+    data_file_path = None
     data_file_path = st.sidebar.file_uploader("Upload DATA Excel file", type=["xlsx", "xls"])
     if data_file_path is not None:
         st.header('\n========== Data ===============')
@@ -298,4 +299,7 @@ if model_file_path is not None:
             st.write(f'\n------')
             st.write(category_df[1])
             st.write(category_df[2])
+
+
+st.header('\n\n ================   The END  =================')
 
