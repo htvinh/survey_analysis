@@ -103,7 +103,8 @@ def read_model_spec(filepath):
     latent_df = normalize_dataframe(latent_df)
     columns_to_exclude = [col for col in latent_df.columns if substring in col.strip().lower()]
     latent_df = latent_df.drop(columns=columns_to_exclude)
-    latent_df['column_index_from'] = latent_df['column_index_from']-1
+    if math.isnan(float(latent_df['column_index_from'])) is not True:
+        latent_df['column_index_from'] = latent_df['column_index_from']-1
     latent_dict = latent_df.to_dict(orient='records')
 
     # Read Dependent Variables
@@ -111,7 +112,8 @@ def read_model_spec(filepath):
     dependent_df = normalize_dataframe(dependent_df)
     columns_to_exclude = [col for col in dependent_df.columns if substring in col.strip().lower()]
     dependent_df = dependent_df.drop(columns=columns_to_exclude)
-    dependent_df['column_index_from'] = dependent_df['column_index_from']-1
+    if math.isnan(float(dependent_df['column_index_from'])) is not True:
+        dependent_df['column_index_from'] = dependent_df['column_index_from']-1
     dependent_dict = dependent_df.to_dict(orient='records')
 
     # Read variance/covariance relations
@@ -134,8 +136,9 @@ def create_construct(selected_variables):
     for col in selected_variables:
         construct = col.get('Variable')
         num_items = col.get('number_questions')
-        items = [f"{construct}_Q{i+1}" for i in range(num_items)]
-        construct_dict[construct] = ' + '.join(items)
+        if math.isnan(float(num_items)) is not True:
+            items = [f"{construct}_Q{i+1}" for i in range(num_items)]
+            construct_dict[construct] = ' + '.join(items)
     return construct_dict
 
 def create_variable_specs(variable_dict):
@@ -180,7 +183,7 @@ def create_sem_model_spec(filepath):
     dependent_df = pd.DataFrame(dependent_dict)
     varcovar_df = pd.DataFrame(varcovar_dict)
     
-    Observable_Variable_list = "\n#-".join([f"{row['Variable']}" for _, row in observable_df.iterrows()])
+    observable_variable_list = "\n#-".join([f"{row['Variable']}" for _, row in observable_df.iterrows()])
 
     observable_spec= convert_list_to_semopy_spec(observable_dict)
     # print(observable_spec)
@@ -230,7 +233,7 @@ def create_sem_model_spec(filepath):
     sem_model_spec_reduced = f"""
     
     ### Observable / Measurement Variables
-    #: {Observable_Variable_list}
+    #: {observable_variable_list}
 
     ### Latent (Construct) Variables
     {latent_spec}
@@ -802,19 +805,13 @@ def conduct_sem_with_moderators(sem_model_spec, data_normalized, label_mappings,
     sem_results_full = []
 
     for moderator in moderators:
-        # Get unique values or categories of the moderator variable
-        # print('\n=========================')
         moderator_values_unique = data_normalized[moderator].unique()
-        # print(moderator_values_unique)
 
         sem_results = []
         for dem_val in moderator_values_unique: 
-            # Get back real label as in original data
-            # Access the label mapping for a specific column
-            mapping_for_category = label_mappings[moderator]
-            # Use the label mapping to get the original label from a numerical label
-            original_label = mapping_for_category.get(dem_val)    
-            # print(dem_val, original_label)
+            column_name = moderator
+            numerical_label = dem_val
+            original_label = get_back_original_label_from_numerical_label(label_mappings, column_name, numerical_label)
              
             #print(f'\n====== Conduct SEM for  {moderator_value}   =========== ')
             # Extract the subset of data for the current moderator value

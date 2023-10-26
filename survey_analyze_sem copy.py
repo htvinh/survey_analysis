@@ -138,18 +138,22 @@ def create_construct(selected_variables):
         construct_dict[construct] = ' + '.join(items)
     return construct_dict
 
-def combine_specs(latent_dict, latent_spec):
+def create_variable_specs(variable_dict):
+
+    variable_df = pd.DataFrame(variable_dict)
+    variable_spec = {row['Variable']: row['Related_Variables'] for _, row in variable_df.iterrows()}
+    
     # Get the construct specs from create_construct
-    construct_specs = create_construct(latent_dict)
+    construct_specs = create_construct(variable_dict)
 
     # For each latent variable in the construct specifications, update the existing spec
     for latent_var, related_vars in construct_specs.items():
         # If the latent_var exists in the latent_spec dictionary, update its related variables
-        if latent_var in latent_spec:
-            latent_spec[latent_var] = latent_spec[latent_var] + ' + ' + related_vars
+        if latent_var in variable_spec:
+            variable_spec[latent_var] = variable_spec[latent_var] + ' + ' + related_vars
 
     # Convert the updated specs back to SEMopy string format
-    semopy_spec = "\n".join([f"{key} =~ {value}" for key, value in latent_spec.items()])
+    semopy_spec = "\n".join([f"{key} =~ {value}" for key, value in variable_spec.items()])
 
     return semopy_spec
 
@@ -181,16 +185,9 @@ def create_sem_model_spec(filepath):
     observable_spec= convert_list_to_semopy_spec(observable_dict)
     # print(observable_spec)
 
-    latent_spec = {row['Variable']: row['Related_Variables'] for _, row in latent_df.iterrows()}
-    latent_spec = combine_specs(latent_dict, latent_spec)
-    # print('\n===================')
-    # print(latent_spec)
+    latent_spec = create_variable_specs(latent_dict)
 
-    dependent_spec = {row['Variable']: row['Related_Variables'] for _, row in dependent_df.iterrows()}
-    dependent_spec = combine_specs(dependent_dict, dependent_spec)
-    # print('\n===================')
-    # print(dependent_spec)
-
+    dependent_spec = create_variable_specs(dependent_dict)
 
     structural_spec = "\n".join([f"{row['Variable']} ~ {row['Related_Variables']}" for _, row in dependent_df.iterrows()])
 
@@ -337,9 +334,9 @@ def conduct_sem_analysis(data, sem_model_spec, observable_dict, latent_dict, dep
     sem_stats = semopy.calc_stats(sem_model)
     # print(sem_stats)
 
-    filename = 'SEM_Model_Stats'
-    excel_file_path = f'{output_path}{filename}.xlsx'
-    sem_stats.to_excel(excel_file_path, index=True)  
+    # filename = 'SEM_Model_Stats'
+    # excel_file_path = f'{output_path}{filename}.xlsx'
+    # sem_stats.to_excel(excel_file_path, index=True)  
 
     # Retrieve the results using the inspect method
     sem_inspect = sem_model.inspect()
@@ -628,52 +625,42 @@ def interpret_sem_stats(sem_stats, parameters_dict):
     parameter_name = 'rmsea_threshold'
     threshold_high_rmsea, threshold_moderate_rmsea =  extract_model_parameters(parameters_dict, parameter_name)
 
-    # Extract values from the sem_stats DataFrame
-    values = [
-        sem_stats['DoF'].values[0],
-        sem_stats['DoF Baseline'].values[0],
-        sem_stats['chi2'].values[0],
-        sem_stats['chi2 p-value'].values[0],
-        sem_stats['chi2 Baseline'].values[0],
-        sem_stats['CFI'].values[0],
-        sem_stats['NFI'].values[0],
-        sem_stats['TLI'].values[0],
-        sem_stats['RMSEA'].values[0],
-        sem_stats['AIC'].values[0]
-    ]
+    # Transpose (flip rows and columns) to create a new DataFrame
+    new_df = sem_stats.T.reset_index()
 
-    # Define the data for interpretation
-    data = {
-        'Metric': ['DoF', 'DoF Baseline', 'chi2', 'chi2 p-value', 'chi2 Baseline', 'CFI', 'NFI', 'TLI', 'RMSEA', 'AIC'],
-        'Full Name': [
-            'Degrees of Freedom',
-            'Degrees of Freedom (Baseline Model)',
-            'Chi-Square Test Statistic',
-            'Chi-Square p-value',
-            'Chi-Square (Baseline Model)',
-            'Comparative Fit Index',
-            'Normed Fit Index',
-            'Tucker-Lewis Index',
-            'Root Mean Square Error of Approximation',
-            'Akaike Information Criterion'
-        ],
-        'Value': values,
-        'Remark': [
-            'More flexibility with higher values',
-            'Fewer paths, usually higher than DoF',
-            'Lower is better',
-            'Higher (like > 0.05) is better',
-            'Higher than regular chi2',
-            'Close to 1 is great',
-            'Close to 1 is okay',
-            'Close to 1 is great',
-            'Below 0.05 is great',
-            'Lower is better for comparing'
-        ]
+    # Rename the columns
+    new_df.columns = ['Metric', 'Value']
+
+    # Define a dictionary to map Metric values to 'Full Name' and 'Remark' values
+    metric_mapping = {
+        'DoF': {'Full Name': 'Degrees of Freedom', 'Remark': 'More flexibility with higher values'},
+        'DoF Baseline': {'Full Name': 'Degrees of Freedom (Baseline Model)', 'Remark': 'Fewer paths, usually higher than DoF'},
+        'chi2': {'Full Name': 'Chi-Square Test Statistic', 'Remark': 'Lower is better'},
+        'chi2 p-value': {'Full Name': 'Chi-Square p-value', 'Remark': 'Higher (like > 0.05) is better'},
+        'chi2 Baseline': {'Full Name': 'Chi-Square (Baseline Model)', 'Remark': 'Higher than regular chi2'},
+        'CFI': {'Full Name': 'Comparative Fit Index', 'Remark': 'Close to 1 is great'},
+        'GFI': {'Full Name': 'Goodness of Fit Index', 'Remark': 'Close to 1 is great'},
+        'AGFI': {'Full Name': 'Adjusted Goodness of Fit Index', 'Remark': 'Close to 1 is great'},
+        'NFI': {'Full Name': 'Normed Fit Index', 'Remark': 'Close to 1 is okay'},
+        'TLI': {'Full Name': 'Tucker-Lewis Index', 'Remark': 'Close to 1 is great'},
+        'RMSEA': {'Full Name': 'Root Mean Square Error of Approximation', 'Remark': 'Below 0.05 is great'},
+        'AIC': {'Full Name': 'Akaike Information Criterion', 'Remark': 'Lower is better for comparing'},
+        'BIC': {'Full Name': 'Bayesian Information Criterion (BIC)', 'Remark': 'Lower values indicate better fit.'},
+        'LogLik': {'Full Name': 'Log Likelihood (LogLik)', 'Remark': 'Higher values indicate better fit.'}
     }
 
-    # Create and return the DataFrame
-    df = pd.DataFrame(data)
+    # Add 'Full Name' and 'Remark' columns based on the mapping
+    new_df['Full Name'] = new_df['Metric'].map(lambda x: metric_mapping[x]['Full Name'])
+    new_df['Remark'] = new_df['Metric'].map(lambda x: metric_mapping[x]['Remark'])
+
+    # Ensure 'Value' column is of type float
+    new_df['Value'] = new_df['Value'].astype(float)
+
+    print(new_df)
+    
+    filename = 'SEM_Model_Stats'
+    excel_file_path = f'{output_path}{filename}.xlsx'
+    new_df.to_excel(excel_file_path, index=True)  
 
     """Provide an overall judgment about the model fit."""
     # Extract primary fit indices
@@ -700,7 +687,7 @@ def interpret_sem_stats(sem_stats, parameters_dict):
         overall_msg = f"The model likely doesn't fit the data well. Because: {reasons_str}"
 
 
-    return df, overall_msg
+    return new_df, overall_msg
 
 
 def interepret_sem_inspect(sem_inspect, dependent_dict, parameters_dict):

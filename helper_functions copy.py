@@ -2,8 +2,6 @@
 import pandas as pd
 import os
 
-import math
-
 from sklearn.preprocessing import LabelEncoder
 
 
@@ -41,8 +39,23 @@ def get_value_from_text(mapping_dict, input_text):
 def apply_mapping_and_replace(mapping_dict, text):
     return get_value_from_text(mapping_dict, text)
 
+def convert_categorical_columns1(data):
+    
+   # Create a copy of the input DataFrame
+    df = data.copy()
 
-def convert_categorical_columns(data):
+    # Initialize the LabelEncoder
+    label_encoder = LabelEncoder()
+
+    # Iterate through each column in the DataFrame
+    for column in df.columns:
+        if df[column].dtype == 'object':  # Check if the column has categorical data
+            # Use LabelEncoder to convert the categorical column to numerical
+            df[column] = label_encoder.fit_transform(df[column])
+
+    return df
+
+def convert_categorical_columns_with_LabelEncoder(data):
     # Create a copy of the input DataFrame
     df = data.copy()
 
@@ -63,15 +76,6 @@ def convert_categorical_columns(data):
 
     # Return both the transformed DataFrame and the label mappings
     return df, label_mappings
-
-def get_back_original_label_from_numerical_label(label_mappings, column_name, numerical_label):
-
-    # Access the label mapping for a specific column
-    mapping_for_category = label_mappings[column_name]
-    # Use the label mapping to get the original label from a numerical label
-    original_label = mapping_for_category.get(numerical_label)    
-
-    return original_label
 
 
 def format_name(name):
@@ -193,17 +197,13 @@ def rename_variable_columns(df, variable_dict):
     for col in variable_dict:
         col_name = col.get('Variable')
         col_index_from = col.get('column_index_from')
-        number_questions = col.get('number_questions')
-        # print('\n=========')
-        # print(col_index_from, number_questions)
-        if math.isnan(float(col_index_from)) is not True or math.isnan(float(number_questions)) is not True:
-            col_index_to = col_index_from + number_questions
+        col_index_to = col_index_from + col.get('number_questions')
 
-            for i in range(col_index_from, col_index_to):
-                old_col_name = df.columns[i]
-                new_col_name = f'{col_name}_Q{i - col_index_from + 1}'
-                df.rename(columns={old_col_name: new_col_name}, inplace=True)
-                variable_cols_names.append(new_col_name)  # Append the new column name
+        for i in range(col_index_from, col_index_to):
+            old_col_name = df.columns[i]
+            new_col_name = f'{col_name}_Q{i - col_index_from + 1}'
+            df.rename(columns={old_col_name: new_col_name}, inplace=True)
+            variable_cols_names.append(new_col_name)  # Append the new column name
 
     return df, variable_cols_names
 

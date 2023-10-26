@@ -1,258 +1,166 @@
-from data_analysis_regression import *
+
+from PIL import Image
+import random
+
 
 import streamlit as st
-import matplotlib.pyplot as plt
-import seaborn as sns
 
-st.title('SURVEY DATA ANALYSIS')
+# import matplotlib.pyplot as plt
+# import seaborn as sns
 
-st.write('Download these 2 sample files to prepare your files.')
-st.write('Need only to adapt the Data Model according to your survey structure.')
-st.write('For the survey data, only need to download as Excel from Google Forms.')
+from survey_quality_analysis import *
 
+from survey_analyze_sem import *
+
+# Increase the pixel limit for loading large images
+Image.MAX_IMAGE_PIXELS = 1000000000  # This can be set to a higher value, or None to remove the limit
+
+is_visualized = False # True False
+
+st.set_page_config(layout="wide")
+
+sem_logo_path = 'survey_sem_logo.png'
+st.image(sem_logo_path, use_column_width=True)
+
+st.title('SURVEY ANALYSIS WITH SEM')
+st.write('SEM (Structural Equation Modeling) with Symopy (https://semopy.com/)')
+
+st.subheader('2 Steps To Do:')
+st.write('Step 1:')
+st.write('Download Model Sample file')
 # To link to Data Model Sample Excel file
-data_model_sample_url = 'https://docs.google.com/spreadsheets/d/19ymgAkEUgvux6z7ykWHnlmtfwu0h3iMa/edit?usp=drive_link&ouid=103775647130982487748&rtpof=true&sd=true'
-st.write(f'[Data Model Sample file download]({data_model_sample_url})')
+model_sample_url = 'https://docs.google.com/spreadsheets/d/1AalALWVNmzILGB2Pc_-WJJ1S5-UIaQOg/edit?usp=drive_link&ouid=103775647130982487748&rtpof=true&sd=true'
+st.write(f'[Model Sample file download]({model_sample_url})')
+st.write('Customize this Excel file according to your analysis model.')
+
+st.write('Step 2:')
+st.write('Upload your Model. Then, the tool will ask to upload the data.')
+st.write('Upload the Data file.')
 
 # To link to Survey Data Sample Excel file
-data_sample_url = 'https://docs.google.com/spreadsheets/d/1A-hKivtLFUJeOpLolfKy5Pd_rUDfsPY1/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
-st.write(f'[Survey Data Sample file download]({data_sample_url})')
-data_sample_url = 'https://docs.google.com/spreadsheets/d/1AATsrch7RkOoD-IEhEm-wBmb1n6kOsZd/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
-st.write(f'[Survey Data Sample (in English) file download]({data_sample_url})')
-
+st.header('Data Sample')
+data_sample_url = 'https://docs.google.com/spreadsheets/d/1Aafpl9gu-HYWd-IybL6MasH64w9yzto5/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
+st.write(f'[Data Sample file download]({data_sample_url})')
 
 st.write('Contact: ho.tuong.vinh@gmail.com')
 st.write('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. USE WITH CAUTION!')
 
+def display_semopy_content(sem_model_spec_reduced):
+    st.title("SEMopy Specification")
+    
+    # Splitting the content at each section to print headers separately
+    sections = sem_model_spec_reduced.split("###")
+    
+    for section in sections:
+        if section.strip() != '':
+            header, content = section.split("\n", 1)
+            st.markdown(f"### {header.strip()}")
+            st.markdown(f"```\n{content.strip()}\n```")
 
-is_visualized = True # True False
-is_sem_analysis = True # True False
+def perform_descriptive_analysis(data, variable_dicts):
 
-def visualize_stats_table(stats_table):
-    for col_name, stats_df in stats_table.items():
-        st.write(f'### Percentage Distribution (%) for {col_name}')
-        fig, ax = plt.subplots(figsize=(3, 2))
-        sns.barplot(x=stats_df.index, y=stats_df['Percent'], ax=ax, )
-
-        # Set the fontsize for title, labels, and ticks
-        title_fontsize = 7
-        label_fontsize = 6
-        ticks_fontsize = 5
-
-        # Annotate each bar with the respective frequency value
-        for i, v in enumerate(stats_df['Percent']):
-            ax.text(i, v/2, str(v), ha='center', va='center', fontsize=ticks_fontsize)
+    for variable_dict in variable_dicts:
+        variable_type = variable_dict['type']
+        st.header(f'{variable_type} Variables')
         
-        plt.title(f'Percentage Distribution for {col_name}', fontsize=title_fontsize)
-        plt.xlabel(col_name, fontsize=label_fontsize)
-        plt.ylabel('Percentage (%)', fontsize=label_fontsize)
-        
-        # Set the fontsize for x-ticks and y-ticks
-        plt.xticks(rotation=30, ha='right', fontsize=ticks_fontsize)
-        plt.yticks(fontsize=ticks_fontsize)
+        for variable_info in variable_dict['variables']:
+            column_index = variable_info['column_index']
+            variable_name = variable_info['Variable']
+            column_data = data.iloc[:, column_index]
 
-        st.pyplot(fig)
+            if column_data.dtype == 'object':
+                # Perform analysis for categorical variables
+                frequency_distribution = column_data.value_counts()
+                total_count = len(column_data)
+                
+                st.subheader(f"Descriptive analysis for {variable_name} (Categorical):")
+                
+                # Create a table with counts and percentages
+                data_table = pd.DataFrame({
+                    'Category': frequency_distribution.index,
+                    'Count': frequency_distribution.values,
+                    'Percentage': (frequency_distribution / total_count * 100).round(2)
+                })
+                st.write(data_table)
+            else:
+                # Perform analysis for numerical variables
+                summary_stats = column_data.describe()
+                st.subheader(f"Descriptive analysis for {variable_name} (Numerical):")
+                st.write(summary_stats)
+
+
 
 # Upload DATA MODEL Excel file
-data_model_name = st.sidebar.file_uploader("Upload DATA MODEL Excel file", type=["xlsx", "xls"])
-if data_model_name is not None:
+model_file_path = st.sidebar.file_uploader("Upload SEM MODEL Excel file", type=["xlsx", "xls"])
+if model_file_path is not None:
     # Read the data into a dictionary
-    # data_model = pd.read_excel(data_model_name)
-    # Display
-    st.header('Data Model')
-    # st.dataframe(data_model)
+    data_model =pd.ExcelFile(model_file_path)
+    # Display sheet by shee
+    st.header('=========        Model Spefification      =========')
+    sheet_names = data_model.sheet_names
+    for sheet_name in sheet_names:
+        sheet_df = pd.read_excel(data_model, sheet_name=sheet_name)
+        st.subheader(sheet_name)
+        st.write(sheet_df)
+
+
+    # To create Model Spec Graph
+    sem_model_spec, sem_model_spec_reduced, \
+        demographic_dict, observable_dict, latent_dict, \
+        dependent_dict, varcovar_dict, parameters_dict = create_sem_model_spec(model_file_path)
     
-    demographic_cols = pd.read_excel(data_model_name, sheet_name='Demographic', header=0)
-    origin_demographic_cols = demographic_cols.copy() # To display only
-    # Convert column index to 0-Python based, supposing that the user begin the column index from 0
-    demographic_cols['col_index'] = demographic_cols['col_index']-1
-    demographic_cols = demographic_cols.to_dict(orient='records')
- 
-    independent_cols = pd.read_excel(data_model_name, sheet_name='Independent')
-    origin_independent_cols = independent_cols.copy() # To display only
-    independent_cols['col_index_from'] = independent_cols['col_index_from']-1
-    independent_cols = independent_cols.to_dict(orient='records')
+    st.subheader('Model Specification')
+    # display_semopy_content(sem_model_spec)
+    sem_model_spec_to_display = reformat_sem_model_to_display(sem_model_spec)
+    st.code(sem_model_spec_to_display)
 
-    target_cols = pd.read_excel(data_model_name, sheet_name='Dependent')
-    origin_target_cols = target_cols.copy() # To display only
-    target_cols['col_index_from'] = target_cols['col_index_from']-1
-    target_cols = target_cols.to_dict(orient='records')
-    
-    st.write('Demographic Variables/Columns')
-    st.dataframe(origin_demographic_cols)
-    print('Demographic Variables/Columns')
-    print(origin_demographic_cols)
+    st.write('Model Specification Graph')
+    graph_name = 'model_spec_graph'
+    graph_path = create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, dependent_dict, graph_name)
+    st.image(graph_path) #, caption='Model Specification Graph')
 
-    st.write('Independent Variables/Columns')
-    st.dataframe(origin_independent_cols)
-    print('Independent Variables/Columns')
-    print(origin_independent_cols)
+    # Upload Data
+    data_file_path = None
+    data_file_path = st.sidebar.file_uploader("Upload DATA Excel file", type=["xlsx", "xls"])
+    if data_file_path is not None:
+        st.header('\n========== Data ===============')
+        data_original = pd.read_excel(data_file_path)
 
-    st.write('Dependent/Target Variables/Columns')
-    st.dataframe(origin_target_cols)
-    print('Dependent/Target Variables/Columns')
-    print(origin_target_cols)
+        st.write(data_original)
 
-    data_file_name = st.sidebar.file_uploader("Upload SURVEY DATA Excel file", type=["xlsx", "xls"])
-    if data_file_name is not None:
-        # Read the data into a dictionary
-        data = pd.read_excel(data_file_name)
-        st.header('Survey data')
-        st.write(data)
+        # Define your variable_dicts that include demographic, observable, and latent variables
+        variable_dicts = [
+            {
+                'type': 'Demographic',
+                'variables': demographic_dict
+            },
+        ]
 
-        data = pd.DataFrame(data)
+        perform_descriptive_analysis(data_original, variable_dicts)
 
-        # Get the number of columns and rows. nbr_rows = data points
-        nbr_columns = data.shape[1]
-        nbr_rows = data.shape[0]
-        total_num_data_points = nbr_rows
-        st.write(f"Number of rows: {nbr_rows} and columns: {nbr_columns}")
+        # Pre-process data
+        data_normalized, label_mappings, demographic_cols_names, \
+            observable_cols_names, latent_cols_names, \
+            dependent_cols_names = \
+            pre_process_data(data_original, demographic_dict, observable_dict, latent_dict, dependent_dict)
 
-        # Rename columns for demographic data columns: to have shorter column names
-        data, demographic_cols_names = rename_demographic_columns_by_index(data, demographic_cols)
-        # print('\nDemographic Column Names')
-        # print(demographic_cols_names)
-        data_points_removed_1 = total_num_data_points - data.shape[0]
+        # st.write(data_normalized)
 
-        # Rename Independent columns according to Independent_Cols
-        total_num_data_points = data.shape[0]
-        data, independent_cols_names = rename_independent_columns(data, independent_cols)
-        data_points_removed = total_num_data_points - data.shape[0]
-        # print('\nIndependent Column Names')
-        # print(independent_cols_names)
-
-
-        # Rename Dependent/Target columns according to Dependent_Cols
-        total_num_data_points = data.shape[0]
-        data, target_cols_names = rename_target_columns(data, target_cols)
-        data_points_removed = total_num_data_points - data.shape[0]
-        # print('\nTarget Column Names')
-        # print(target_cols_names)
-
-        # print(data.columns)
-
-        # Remove data points (rows) with missing data related to demographic data columns
-        total_num_data_points = data.shape[0]
-        data = remove_rows_with_missing_data_related_to_selected_cols(data, demographic_cols_names)
-        data_points_removed_1 = total_num_data_points - data.shape[0]
-
-        # Remove data points (rows) with missing data related to independent data columns
-        total_num_data_points = data.shape[0]
-        data = remove_rows_with_missing_data_related_to_selected_cols(data, independent_cols_names)
-        data_points_removed_2 = total_num_data_points - data.shape[0]
-
-        # Remove data points (rows) with missing data related to Target data columns
-        total_num_data_points = data.shape[0]
-        data = remove_rows_with_missing_data_related_to_selected_cols(data, target_cols_names)
-        data_points_removed_3 = total_num_data_points - data.shape[0]
-
-        total_removed = data_points_removed_3 + data_points_removed_2 + data_points_removed_1
-        st.write(f'Number of data points removed because of missing data:   {total_removed}')
-
-        # To check if the mapping between Data Model and Survey Data is correct (in terms of Column Index)
-        for index, column_name in enumerate(data.columns):
-            print(f"Column {index}: {column_name}")
-
-        # Create a statistics table for Demographic Columns
-        selected_cols_names = demographic_cols_names
-        output_file_name = 'Demographic'
-        demographic_stats_table = compute_selected_cols_statistics(data, selected_cols_names, output_file_name)
-        
-        st.header('Statistics of Demographic Columns')
-        # Create a download button for the Excel file
-        filename = 'Demographic_Stats.xlsx'
-        st.download_button(
-            label="Download Statistics of Demographic Columns Excel File",
-            file_name = filename,
-            data=open(f'./output/{filename}', 'rb').read(),
-            key='excel-download-button-dem'
-        )
-        # st.write(demographic_stats_table)
-        with st.expander("To display"):
-            st.write(demographic_stats_table)
-        # Visualize
-        if is_visualized is True:
-            visualize_stats_table(demographic_stats_table)
-        
-        del demographic_stats_table
-
-        print('\nCreate a statistics table for Demographic Columns!  Done')
-
-        # Create statistic table for independent_cols
-        selected_cols_names = independent_cols_names
-        output_file_name = 'Independent'
-        independent_stats_table = compute_selected_cols_statistics(data, selected_cols_names, output_file_name)
-        st.header('Statistics of Independent Columns')
-
-        # Create a download button for the Excel file
-        filename = 'Independent_Stats.xlsx'
-        st.download_button(
-            label="Download Statistics of Independent Columns Excel File",
-            file_name = filename,
-            data=open(f'./output/{filename}', 'rb').read(),
-            key='excel-download-button-ind'
-        )
-        with st.expander("To display"):
-            st.write(independent_stats_table)
-        # st.write(independent_stats_table)
-        # Visualize
-        if is_visualized is True:
-            visualize_stats_table(independent_stats_table)
-
-        del independent_stats_table
-        print('\nCreate a statistics table for Independent Columns!  Done')
-
-        # Create statistic table for target_cols
-        selected_cols_names = target_cols_names
-        output_file_name = 'Target'
-        target_stats_table = compute_selected_cols_statistics(data, selected_cols_names, output_file_name)
-        st.header('Statistics of Target Columns')
-
-        # Create a download button for the Excel file
-        filename = 'Target_Stats.xlsx'
-        st.download_button(
-            label="Download Statistics of Target Columns Excel File",
-            file_name = filename,
-            data=open(f'./output/{filename}', 'rb').read(),
-            key='excel-download-button-taget'
-        )
-        with st.expander("To display"):
-            st.write(target_stats_table)
-        # st.write(target_stats_table)
-        if is_visualized is True:
-            visualize_stats_table(target_stats_table)
-
-        del target_stats_table
-        print('\nCreate a statistics table for Target Columns!  Done')
-
-        # Extract data for Indendent Columns
-        selected_cols_names = independent_cols_names
-        independent_data = extract_selected_colums_data(data, selected_cols_names)
-        # st.write(independent_data)
-        print('\nExtract Independent Data.   Done\n')
-
-        # Extract data for Dependent Columns
-        selected_cols_names = target_cols_names
-        # st.write(selected_cols_names)
-        target_data = extract_selected_colums_data(data, selected_cols_names)
-        # st.write(target_data)
-
-        st.header("Testing the reliability of the scale using Cronbach's alpha for independent columns")
+        st.header("Testing the reliability of the scale using Cronbach's alpha for Observable Variables")
         # Calculate Cronbach's alpha
-        overall_alpha, alpha_table = compute_cronbach_alpha(independent_data, independent_cols)
-        # Print the result
-        print(alpha_table)
+        overall_alpha, alpha_table = compute_cronbach_alpha(data_normalized, observable_dict)
         st.write(f"Overall Cronbach's Alpha: {overall_alpha}")
         # Display Alpha for each Independent Variable
-        st.write(f"Cronbach's Alpha for each independent variables:")
-        for idx, col in enumerate(independent_cols):
-            col_name = col.get('name')
+        st.write(f"Cronbach's Alpha for each observale variables:")
+        for idx, col in enumerate(observable_dict):
+            col_name = col.get('Variable')
             st.markdown(f'- **{col_name}**:  {alpha_table[idx]}')
 
 
         # EFA Analysis
-        efa_results = conduct_efa_analysis(independent_data) 
-        st.header('EFA analysis using PCA')
+        efa_results = conduct_efa_analysis(data_normalized, observable_dict)
+        st.header(f'Conduct EFA analysis')
+        st.write('(factors automatically detected according to eigenvalues)')
 
         # Create a download button for the Excel file
         filename = 'EFA_Analysis.xlsx'
@@ -268,91 +176,130 @@ if data_model_name is not None:
         print('\nEFA analysis.   Done')
 
         # Interpret EFA Results
-        efa_interpretation = interpret_pca_results(efa_results)
+        threshold_high = 0.6  # Threshold for high loadings
+        threshold_moderate = 0.3   # Threshold for low loadings
+        efa_interpretation = interpret_efa_results(efa_results, threshold_high, threshold_moderate)
         print(efa_interpretation)
-        st.subheader("### Simple Interpretation")
+        st.subheader(f"EFA - Simple Interpretation with threshold_high= {threshold_high} and threshold_moderate= {threshold_moderate}")
         # Display the interpretations in Streamlit
-        for line in efa_interpretation:
-            st.text(line)
-        del efa_results
+        for interpretation in efa_interpretation:
+            st.write(interpretation)
 
 
         # Compute Correclation Matrix
-        correlation_table = compute_correlation(independent_data)
+        correlation_matrix = compute_correlation(data_normalized, observable_dict)
         st.header('Corellation Analsyis By Pearson Method')
 
         # Create a download button for the Excel file
-        filename = 'Correlation_Table.xlsx'
+        filename = 'Correlation_Matrix.xlsx'
         st.download_button(
             label="Download Correlation Matrix Excel File",
             file_name = filename,
             data=open(f'./output/{filename}', 'rb').read(),
             key='excel-download-button-cor'
         )
-        st.write(correlation_table)
+        st.write(correlation_matrix)
+
+        st.subheader('\nCorrelation Heatmap')
+        st.image(f'{output_path}correlation_heatmap.png')
+
         print('\Correlation analysis.   Done')
 
         # Interpretation et recommendation 
-        corr_interpretation_df, corr_recommendation_df = interpret_and_recommend_correlation(correlation_table, threshold=0.5)
-        st.write("### Correlation Interpretations")
-        for index, row in corr_interpretation_df.iterrows():
-            st.write(f"**{index+1}. {row['Variables']} (Correlation: {row['Correlation']:.2f})**: {row['Interpretation']}")
+        threshold_strong = 0.7  # Threshold for strong correlation
+        threshold_moderate = 0.3    # Threshold for weak correlation
+        corr_interpretation_df = interpret_correlation(correlation_matrix, threshold_strong,threshold_moderate)
+        st.subheader(f"Correlation Interpretations with threshold_strong= {threshold_strong} and threshold_weak= {threshold_moderate}")
+        st.write(corr_interpretation_df)
 
-        # st.write("### Recommendations Based on Correlations")
-        # for index, row in corr_recommendation_df.iterrows():
-        #     st.write(f"**{index+1}. {row['Variables']}**: {row['Recommendation']}")
+        del correlation_matrix
 
-        del correlation_table
+        # Conduct SEM Analysis
+        st.header('\n========== SEM Analysis ===============')
 
-        # Make Multivarate Regression Analysis
-        st.header('Multivariate Regression Analysis')
-        for idx, target_col in enumerate(target_cols_names):
-            st.write('\n========================================')
-            st.write(f'Regression Analysis for Target {target_cols_names[idx]}')
-            target_data = extract_selected_colums_data(data, [target_cols_names[idx]])
-            output_filename = f'Multivariate_Regression_Summary_{idx+1}.docx'
-            regression_results = do_multivariate_regression_analysis_with_OLS(target_data, independent_data, output_filename)
-            summary_result = regression_results.summary() 
+        st.subheader('\nSEM Model Spec according to Semopy Format')
+        sem_model_spec_to_display = reformat_sem_model_to_display(sem_model_spec)
+        st.code(sem_model_spec_to_display)
 
-            # Create a download button for the Excel file
-            filename = output_filename
-            st.download_button(
-                label="Download Multivariate Regression Analysis Report Docx File",
-                file_name = filename,
-                data=open(f'./output/{filename}', 'rb').read(),
-                key=f'excel-download-button-reg-{idx+1}'
-            )
-            st.write(summary_result)
+        # st.subheader('Model Specification Graph')
+        # graph_name = 'sem_model_spec_graph_full'
+        # graph_path = create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, dependent_dict, graph_name)
+        # st.image(graph_path) #, caption='Model Specification Graph')
+        #try:
+        #    image_path = graph_path  # Adjust this to your image path
+        #    image = Image.open(image_path)
+        #    st.image(image, caption='Image from folder', use_column_width=True)
+        #except Exception as e:
+        #    st.write(f"The image is too big: {e}")
 
-            # Interpretation and recommendations
-            reg_interpretation, reg_recommendation = interpret_and_recommend_regression_with_OLS(regression_results)
-            # Display in Streamlit
-            st.write("### Regression Interpretations")
-            st.write(reg_interpretation)
+        sem_result, sem_stats, sem_inspect, sem_inspect_enhanced, \
+        sem_inspect_filtered, graph_filtered_results, \
+        graph_fulll_results = conduct_sem_analysis(data_normalized, sem_model_spec, observable_dict, latent_dict, dependent_dict)
+       
 
-        # Testing hypothesis: if a factor/independent variable has effect on the dependent variable
-        st.header('Testing if a factor/independent variable has effect on the dependent variable.')
-        st.write('The F-test (Linear Regression) helps you determine if the factor you are studying has a significant impact on the dependent variable you are measuring.')
-        for idx, target_col in enumerate(target_cols_names):
-            st.write('\n========================================')
-            st.write(f'Testing Effect hypothesis for Target {target_cols_names[idx]}')
-            target_data = extract_selected_colums_data(data, [target_cols_names[idx]])
-            variable_data = independent_data
-            testing_results = test_if_factor_has_effect_on_target(target_data, variable_data, independent_cols)
-            st.write('\nTesting Results:\n', testing_results)
+        st.subheader('\nSEM Stats')
+        st.code(sem_result)
+        # st.table(sem_stats)
+        stats_interpret_df, overall_msg =  interpret_sem_stats(sem_stats, parameters_dict)
+        st.subheader(overall_msg)
+        st.write(stats_interpret_df)
 
-    st.write('\n\n=========================    The END   ==========================\n')
-    st.subheader('Try:')
-    st.header('Survey Data Analysis with SEM')
-    st.write('https://sem-analysis.streamlit.app/')
+        # Create a download button for the Excel file
+        filename = 'SEM_Model_Stats.xlsx'
+        st.download_button(
+            label="Download SEM Model Statistics Excel File",
+            file_name = filename,
+            data=open(f'./output/{filename}', 'rb').read(),
+            key='excel-download-button-sem_stats'
+        )
+
+        st.subheader('SEM Results')
+        st.write(sem_inspect_enhanced)
+
+        # Create a download button for the Excel file
+        filename = 'SEM_Results.xlsx'
+        st.download_button(
+            label="Download SEM Results Excel File",
+            file_name = filename,
+            data=open(f'./output/{filename}', 'rb').read(),
+            key='excel-download-button-sem_results'
+        )
+
+        st.subheader('SEM Results Full Graph')
+        st.image(graph_fulll_results)
+        
+        st.subheader('\nInterepretations')
+        
+        interepretation_sem_inspect = interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, parameters_dict)
+        for interpretation in interepretation_sem_inspect:
+            st.markdown(interpretation)
+            st.write("---")  # Adds a horizontal line for separation
+        
+
+    # CONDUCT SEM with Moderator variables (Demographic variables)
+
+    # Check if Multi Analyis with Demographic variables as Moderators is required
+    is_analysis_with_moderator_required, moderators = check_if_analysis_with_moderator_required(demographic_dict)
+    if is_analysis_with_moderator_required:
+        # Base line SEM Inspect Results
+        inspect_baseline = filter_inspect_table_from_spec(sem_inspect, sem_model_spec)
+
+        st.header('\n\nSubgroup Analysis using Demographic variables (as Moderators) and their values.')
+        st.write('Extract subdata correspoding to each value of Moderators, and Apply the same SEM Analysis.')
+        st.write('The Results with all groups (without the demographic data) are used as "baseline".')
+        
+        st.subheader('List of moderators')
+        st.write(moderators)
+
+        sem_results_full = conduct_sem_with_moderators(sem_model_spec, data_normalized, label_mappings, moderators)
+ 
+        post_process_results = post_process_sem_with_moderator_resuls(sem_results_full, inspect_baseline, moderators)
+        for i, category_df in enumerate(post_process_results):
+            st.subheader(f'{category_df[0]}')
+            st.write(f'\n------')
+            st.write(category_df[1])
+            st.write(category_df[2])
 
 
-    st.write('\n\n\n\n\n==============================================================================\n')
-    st.write('And more ... Only 1 minute to convert Youtube video to slides!')
-    st.write('https://htvinh-youtube2slides-streamlit-app-k14x3w.streamlitapp.com/')
-    st.write('\n')
-
-    st.write('See you next time ! == ho.tuong.vinh@gmail.com ==')
-
-
+st.header('\n\n ================   The END  =================')
 
