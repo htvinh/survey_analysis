@@ -103,8 +103,8 @@ def read_model_spec(filepath):
     latent_df = normalize_dataframe(latent_df)
     columns_to_exclude = [col for col in latent_df.columns if substring in col.strip().lower()]
     latent_df = latent_df.drop(columns=columns_to_exclude)
-    if math.isnan(float(latent_df['column_index_from'])) is not True:
-        latent_df['column_index_from'] = latent_df['column_index_from']-1
+    # if math.isnan(float(latent_df['column_index_from'])) is not True:
+    latent_df['column_index_from'] = latent_df['column_index_from']-1
     latent_dict = latent_df.to_dict(orient='records')
 
     # Read Dependent Variables
@@ -112,8 +112,8 @@ def read_model_spec(filepath):
     dependent_df = normalize_dataframe(dependent_df)
     columns_to_exclude = [col for col in dependent_df.columns if substring in col.strip().lower()]
     dependent_df = dependent_df.drop(columns=columns_to_exclude)
-    if math.isnan(float(dependent_df['column_index_from'])) is not True:
-        dependent_df['column_index_from'] = dependent_df['column_index_from']-1
+    # if math.isnan(float(dependent_df['column_index_from'])) is not True:
+    dependent_df['column_index_from'] = dependent_df['column_index_from']-1
     dependent_dict = dependent_df.to_dict(orient='records')
 
     # Read variance/covariance relations
@@ -136,7 +136,7 @@ def create_construct(selected_variables):
     for col in selected_variables:
         construct = col.get('Variable')
         num_items = col.get('number_questions')
-        if math.isnan(float(num_items)) is not True:
+        if math.isnan(float(num_items)) is not True or num_items > 0 :
             items = [f"{construct}_Q{i+1}" for i in range(num_items)]
             construct_dict[construct] = ' + '.join(items)
     return construct_dict
@@ -152,7 +152,7 @@ def create_variable_specs(variable_dict):
     # For each latent variable in the construct specifications, update the existing spec
     for latent_var, related_vars in construct_specs.items():
         # If the latent_var exists in the latent_spec dictionary, update its related variables
-        if latent_var in variable_spec:
+        if latent_var in variable_spec and len(related_vars) > 0:
             variable_spec[latent_var] = variable_spec[latent_var] + ' + ' + related_vars
 
     # Convert the updated specs back to SEMopy string format
@@ -283,10 +283,6 @@ def create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, de
     dependent_variable_names = [item['Variable'] for item in dependent_dict]
     observable_variable_names = [item['Variable'] for item in observable_dict]
 
-    # observable_variable_names = sorted(observable_variable_names, reverse=True)
-    # dependent_variable_names = sorted(dependent_variable_names, reverse=True)
-    # latent_variable_names = sorted(latent_variable_names, reverse=True)
-
 
     # Create subgraphs for alignment
     with g.subgraph() as s:
@@ -312,10 +308,10 @@ def create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, de
             for var in rhs_vars:
                 g.edge(var.strip(), lhs.strip(), dir='forward')
         
-        # Covariances
+        # Covariances / Variances
         if '~~' in line:
             lhs, rhs = line.split('~~', maxsplit=1) 
-            g.edge(lhs.strip(), rhs.strip(), dir='none', style='dashed')
+            g.edge(lhs.strip(), rhs.strip(), dir='both', style='dashed')
 
     # Save to file
     # graph_name = 'sem_model_graph'
@@ -337,9 +333,6 @@ def conduct_sem_analysis(data, sem_model_spec, observable_dict, latent_dict, dep
     sem_stats = semopy.calc_stats(sem_model)
     # print(sem_stats)
 
-    # filename = 'SEM_Model_Stats'
-    # excel_file_path = f'{output_path}{filename}.xlsx'
-    # sem_stats.to_excel(excel_file_path, index=True)  
 
     # Retrieve the results using the inspect method
     sem_inspect = sem_model.inspect()
@@ -505,21 +498,19 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
                 lhs = lhs.strip()
                 if var != lhs:
                     label = edge_labels.get((var, lhs), '')
-                    value = edge_values.get((var, lhs), '')
+                    # value = edge_values.get((var, lhs), '')
                     # label_with_value = f"{label} (Est: {value:.2})"
-                    label_with_value = f"{label}"
-                g.edge(var, lhs, dir='forward', label=label_with_value)  # Add the label to the edge
+                    # label_with_value = f"{label}"
+                g.edge(var, lhs, dir='forward', label=label)  # Add the label to the edge
 
-        # Covariances
+        # Covariances / Variances
         elif '~~' in line:
             lhs, rhs = line.split('~~', maxsplit=1)
-            label = "Cov"
-            value = edge_values.get((lhs.strip(), rhs.strip()), '')
-            label_with_value = f"Est: {value:.2f}"
-            # label_with_value = ''
-            g.edge(lhs.strip(), rhs.strip(), dir='none', style='dashed', label=label_with_value)
+            label = edge_labels.get((lhs.strip(), rhs.strip()), '')
+            g.edge(lhs.strip(), rhs.strip(), dir='both', style='dashed', label=label)
 
         # Variances (identity matrix)
+        '''
         elif '=~' in line:
             var_name = line.split('=')[0].strip()
             label = "Var"
@@ -527,6 +518,7 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
             label_with_value = f"{label} (Est: {value:.2f})"
             # label_with_value = ''
             g.edge(var_name, var_name, dir='none', label=label_with_value)
+        '''
 
     # Set the graph attributes for size and imagescale
     graph_name = 'sem_graph_results_full'

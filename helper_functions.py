@@ -119,7 +119,7 @@ def normalize_dataframe(df):# Define a function to normalize a single string
             return x.strip().replace(' ', '_')
         return x
     # Apply the function to the entire DataFrame
-    df = df.apply(normalize_string)
+    df = df.map(normalize_string)
 
     # Normalize column names
     df.columns = [col.strip().replace(' ', '_') for col in df.columns]
