@@ -98,6 +98,7 @@ def normalize_variable_names(variable_dict):
     return normalized_variables
 
 # Define a function to normalize column names and string values
+'''
 def normalize_string(element):
     # If the input is a pandas Series
     if isinstance(element, pd.Series):
@@ -111,19 +112,37 @@ def normalize_string(element):
     else:
         return element  # Return the original input for other data types
 
+'''
 # Define a function to normalize column names and string values
 # Remove any leading and trailing spaces. Replace spaces with underscores
 def normalize_dataframe(df):# Define a function to normalize a single string
-    def normalize_string(x):
-        if isinstance(x, str) and '+' not in x and ',' not in x:
-            return x.strip().replace(' ', '_')
-        return x
-    # Apply the function to the entire DataFrame
-    df = df.map(normalize_string)
+    df = df.astype(str)
 
-    # Normalize column names
-    df.columns = [col.strip().replace(' ', '_') for col in df.columns]
-    
+    def normalize_string(x):
+        x = x.strip()
+        if isinstance(x, str):
+            if '+' in x:
+                # Split the string by '+' and normalize each segment
+                segments = [segment.strip().replace(' ', '_') for segment in x.split('+')]
+                return '+'.join(segments)
+            else :
+                return x.strip().replace(' ', '_')
+
+    column_to_clean = 'Variable'
+    if column_to_clean in df.columns:
+        df[column_to_clean] = df[column_to_clean].str.strip()
+
+    column_to_clean = 'Related_Variables'
+    if column_to_clean in df.columns:
+        df[column_to_clean] = df[column_to_clean].map(normalize_string)
+
+    # Automatically detect and convert columns with numerical data
+    for column in df.columns:
+        try:
+            df[column] = pd.to_numeric(df[column])
+        except ValueError:
+            pass  # Ignore columns that cannot be converted to numerical
+
     return df
 
 # Flatten a list
@@ -196,7 +215,10 @@ def rename_variable_columns(df, variable_dict):
         number_questions = col.get('number_questions')
         # print('\n=========')
         # print(col_index_from, number_questions)
-        if math.isnan(float(col_index_from)) is not True or math.isnan(float(number_questions)) is not True:
+        # if math.isnan(float(col_index_from)) is not True or math.isnan(float(number_questions)) is not True:
+        if type(col_index_from) == str or type(number_questions) == str:
+            continue
+        else:
             col_index_to = col_index_from + number_questions
 
             for i in range(col_index_from, col_index_to):

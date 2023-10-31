@@ -89,7 +89,6 @@ def perform_descriptive_analysis(data, variable_dicts):
                 st.write(summary_stats)
 
 
-
 # Upload DATA MODEL Excel file
 model_file_path = st.sidebar.file_uploader("Upload SEM MODEL Excel file", type=["xlsx", "xls"])
 if model_file_path is not None:
@@ -108,6 +107,7 @@ if model_file_path is not None:
     sem_model_spec, sem_model_spec_reduced, \
         demographic_dict, observable_dict, latent_dict, \
         dependent_dict, varcovar_dict, parameters_dict = create_sem_model_spec(model_file_path)
+    
     
     st.subheader('Model Specification')
     # display_semopy_content(sem_model_spec)
@@ -135,7 +135,7 @@ if model_file_path is not None:
                 'variables': demographic_dict
             },
         ]
-
+        print(demographic_dict)
         perform_descriptive_analysis(data_original, variable_dicts)
 
         # Pre-process data
@@ -221,16 +221,6 @@ if model_file_path is not None:
         sem_model_spec_to_display = reformat_sem_model_to_display(sem_model_spec)
         st.code(sem_model_spec_to_display)
 
-        # st.subheader('Model Specification Graph')
-        # graph_name = 'sem_model_spec_graph_full'
-        # graph_path = create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, dependent_dict, graph_name)
-        # st.image(graph_path) #, caption='Model Specification Graph')
-        #try:
-        #    image_path = graph_path  # Adjust this to your image path
-        #    image = Image.open(image_path)
-        #    st.image(image, caption='Image from folder', use_column_width=True)
-        #except Exception as e:
-        #    st.write(f"The image is too big: {e}")
 
         sem_result, sem_stats, sem_inspect, sem_inspect_enhanced, \
         sem_inspect_filtered, graph_filtered_results, \
@@ -276,30 +266,41 @@ if model_file_path is not None:
             st.write("---")  # Adds a horizontal line for separation
         
 
-    # CONDUCT SEM with Moderator variables (Demographic variables)
+        # CONDUCT SEM with Moderator variables (Demographic variables)
 
-    # Check if Multi Analyis with Demographic variables as Moderators is required
-    is_analysis_with_moderator_required, moderators = check_if_analysis_with_moderator_required(demographic_dict)
-    if is_analysis_with_moderator_required:
-        # Base line SEM Inspect Results
-        inspect_baseline = filter_inspect_table_from_spec(sem_inspect, sem_model_spec)
+        # Check if Multi Analyis with Demographic variables as Moderators is required
+        is_analysis_with_moderator_required, moderators = check_if_analysis_with_moderator_required(demographic_dict)
+        if is_analysis_with_moderator_required:
+            # Base line SEM Inspect Results
+            inspect_baseline = filter_inspect_table_from_spec(sem_inspect, sem_model_spec)
 
-        st.header('\n\nSubgroup Analysis using Demographic variables (as Moderators) and their values.')
-        st.write('Extract subdata correspoding to each value of Moderators, and Apply the same SEM Analysis.')
-        st.write('The Results with all groups (without the demographic data) are used as "baseline".')
-        
-        st.subheader('List of moderators')
-        st.write(moderators)
+            st.header('\n\nSubgroup Analysis using Demographic variables (as Moderators) and their values.')
+            st.write('Extract subdata correspoding to each value of Moderators, and Apply the same SEM Analysis.')
+            st.write('The Results with all groups (without the demographic data) are used as "baseline".')
+            
+            st.subheader('List of moderators')
+            st.write(moderators)
 
-        sem_results_full = conduct_sem_with_moderators(sem_model_spec, data_normalized, label_mappings, moderators)
- 
-        post_process_results = post_process_sem_with_moderator_resuls(sem_results_full, inspect_baseline, moderators)
-        for i, category_df in enumerate(post_process_results):
-            st.subheader(f'{category_df[0]}')
-            st.write(f'\n------')
-            st.write(category_df[1])
-            st.write(category_df[2])
+            sem_results_full = conduct_sem_with_moderators(sem_model_spec, data_normalized, label_mappings, moderators)
+    
+            post_process_results = post_process_sem_with_moderator_resuls(sem_results_full, inspect_baseline, moderators)
+            for i, category_df in enumerate(post_process_results):
+                st.subheader(f'{category_df[0]}')
+                st.write(f'\n------')
+                st.write(category_df[1])
+                st.write(category_df[2])
 
 
-st.header('\n\n ================   The END  =================')
+        st.header('\n\n ================   The END  =================')
 
+        st.subheader('Try:')
+        st.header('Data Analysis with SEM')
+        st.write('https://sem-analysis.streamlit.app')
+
+
+        st.write('\n\n\n\n\n==============================================================================\n')
+        st.write('And more ... Only 1 minute to convert Youtube video to slides!')
+        st.write('https://htvinh-youtube2slides-streamlit-app-k14x3w.streamlitapp.com/')
+        st.write('\n')
+
+        st.write('See you next time ! == ho.tuong.vinh@gmail.com ==')

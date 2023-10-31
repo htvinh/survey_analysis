@@ -89,6 +89,7 @@ def read_model_spec(filepath):
     demographic_df = demographic_df.drop(columns=columns_to_exclude)
     demographic_df['column_index'] = demographic_df['column_index']-1
     demographic_dict = demographic_df.to_dict(orient='records')
+    print(demographic_df)
 
     # Read Observable Variables
     observable_df = pd.read_excel(filepath, sheet_name='Observable_Variables', header=0)
@@ -97,6 +98,7 @@ def read_model_spec(filepath):
     observable_df = observable_df.drop(columns=columns_to_exclude)
     observable_df['column_index_from'] = observable_df['column_index_from']-1
     observable_dict = observable_df.to_dict(orient='records')
+    print(observable_df)
 
     # Read Latent Variables
     latent_df = pd.read_excel(filepath, sheet_name='Latent_Variables')
@@ -106,6 +108,7 @@ def read_model_spec(filepath):
     # if math.isnan(float(latent_df['column_index_from'])) is not True:
     latent_df['column_index_from'] = latent_df['column_index_from']-1
     latent_dict = latent_df.to_dict(orient='records')
+    print(latent_df)
 
     # Read Dependent Variables
     dependent_df = pd.read_excel(filepath, sheet_name='Dependent_Variables')
@@ -115,6 +118,7 @@ def read_model_spec(filepath):
     # if math.isnan(float(dependent_df['column_index_from'])) is not True:
     dependent_df['column_index_from'] = dependent_df['column_index_from']-1
     dependent_dict = dependent_df.to_dict(orient='records')
+    print(dependent_df)
 
     # Read variance/covariance relations
     varcovar_df = pd.read_excel(filepath, sheet_name='VarCovar_Relations')
@@ -136,7 +140,11 @@ def create_construct(selected_variables):
     for col in selected_variables:
         construct = col.get('Variable')
         num_items = col.get('number_questions')
-        if math.isnan(float(num_items)) is not True or num_items > 0 :
+        # num_items is empty string
+        if type(num_items) == str:
+            continue
+        else:
+            num_items = int(num_items)
             items = [f"{construct}_Q{i+1}" for i in range(num_items)]
             construct_dict[construct] = ' + '.join(items)
     return construct_dict
@@ -166,11 +174,16 @@ def convert_list_to_semopy_spec(input_list):
     for entry in input_list:
         variable = entry['Variable']
         num_items = entry['number_questions']
+        # print('=========', num_items)
+        # if math.isnan(float(num_items)) is not True and int(num_items) > 0:
+        # if num_items is not None: # and int(num_items) > 0:
         questions = [f"{variable}_Q{i+1}" for i in range(num_items)]
         
         semopy_dict[variable] = ' + '.join(questions)
+
+    output = "\n".join([f"{key} =~ {value}" for key, value in semopy_dict.items()])
         
-    return "\n".join([f"{key} =~ {value}" for key, value in semopy_dict.items()])
+    return output
 
 
 # Create SEM Model Spec Full 
