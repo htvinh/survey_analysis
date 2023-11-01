@@ -27,9 +27,9 @@ create_new_directory(output_path)
 
 ATTENTION_SEMOPY_INTERPRETATION = f"""\n
     ATTENTION: \n
-    Setting the estimate of the first construct to 1 in SEMopy establishes a baseline
+    Setting the estimate of the first indicator to 1 in SEMopy establishes a baseline
     for comparison, simplifying the analysis by making one indicator a reference point 
-    for evaluating relationships with other variables.
+    for evaluating relationships with other indicators.
 """
 
 def reformat_sem_model_to_display(sem_model_spec):
@@ -171,6 +171,8 @@ def create_variable_specs(variable_dict):
 
     return semopy_spec
 
+
+
 def convert_list_to_semopy_spec(input_list):
     semopy_dict = {}
     
@@ -200,15 +202,18 @@ def create_sem_model_spec(filepath):
     varcovar_df = pd.DataFrame(varcovar_dict)
     
     observable_variable_list = "\n#-".join([f"{row['Variable']}" for _, row in observable_df.iterrows()])
-
     observable_spec= convert_list_to_semopy_spec(observable_dict)
     # print(observable_spec)
 
-    latent_spec = create_variable_specs(latent_dict)
+    latent_spec= convert_list_to_semopy_spec(latent_dict)
+    # print(latent_spec)
 
-    dependent_spec = create_variable_specs(dependent_dict)
+    dependent_spec= convert_list_to_semopy_spec(dependent_dict)
+    # print(latent_spec)
 
-    structural_spec = "\n".join([f"{row['Variable']} ~ {row['Related_Variables']}" for _, row in dependent_df.iterrows()])
+    latent_structural_spec = "\n".join([f"{row['Variable']} ~ {row['Related_Variables']}" for _, row in latent_df.iterrows()])
+
+    dependent_structural_spec = "\n".join([f"{row['Variable']} ~ {row['Related_Variables']}" for _, row in dependent_df.iterrows()])
 
     # Generate variance and covariance specifications
     # Initialize empty lists for variances and covariances
@@ -241,7 +246,8 @@ def create_sem_model_spec(filepath):
     {dependent_spec}
 
     ### Structural Model /Relations
-    {structural_spec}
+    {latent_structural_spec}
+    {dependent_structural_spec}
 
     """ 
 
@@ -258,7 +264,9 @@ def create_sem_model_spec(filepath):
     {dependent_spec}
 
     ### Structural Model /Relations
-    {structural_spec}
+    {latent_structural_spec}
+    {dependent_structural_spec}
+
 
     """ 
     
@@ -320,7 +328,7 @@ def create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, de
 
     # Create subgraphs for alignment
     with g.subgraph() as s:
-        s.attr(rankdir='LR') #rankdir='RL') #rank='same')
+        s.attr(rank='min') #rankdir='RL') #rank='same')
         for indicator_name in indicator_variable_names:
             s.node(indicator_name, shape='box', fillcolor='#e6f2ff', style='filled')
 
@@ -328,7 +336,7 @@ def create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, de
     g.edge(indicator_variable_names[-1], observable_variable_names[0], style='invis')  # From indicators to observables
 
     with g.subgraph() as s:
-        s.attr(rankdir='LR', rank='same')
+        s.attr(rank='same')
         for var_name in observable_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#cae6df', style='filled')
 
@@ -357,13 +365,16 @@ def create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, de
             lhs, rhs = lhs.strip(), rhs.strip()
             rhs_vars = rhs.strip().split('+')
             for var in rhs_vars:
-                g.edge(var.strip(), lhs, dir='forward')
-                '''
-                if var.strip() in indicator_variable_names:
-                    g.edge(lhs, var.strip(), dir='forward')
-                else:
-                    g.edge(var.strip(), lhs, dir='forward')
-                '''
+                g.edge(lhs, var.strip(), dir='forward')
+
+        if '~' in line and '=~' not in line and '~~' not in line:
+            lhs, rhs = line.split('~', maxsplit=1)  
+            rhs_vars = rhs.strip().split('+')
+            for var in rhs_vars:
+                var = var.strip()
+                lhs = lhs.strip()
+                g.edge(var.strip(), lhs.strip(), dir='forward', color='#0000FF')
+
         
         # Covariances / Variances
         if '~~' in line:
@@ -495,7 +506,11 @@ def create_label(row):
     # Construct the label
     parts = []
     if estimate is not None and not pd.isna(estimate):
-        parts.append(f"Est: {estimate:.2f}")
+        if isinstance(estimate, float) and estimate.is_integer():
+            estimate = int(estimate)
+            parts.append(f"Est: {estimate}")
+        else:
+            parts.append(f"Est: {estimate:.3f}")
     #if estimate is not None and not pd.isna(std_err):
     #    parts.append(f"Std. Err: {std_err:.2f}")
     if p_value is not None and not pd.isna(p_value):
@@ -522,7 +537,7 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
 
     # Create subgraphs for alignment
     with g.subgraph() as s:
-        s.attr() #rank='same')
+        s.attr(rank='min') #rank='same')
         for indicator_name in indicator_variable_names:
             s.node(indicator_name, shape='box', fillcolor='#e6f2ff', style='filled')
 
@@ -535,7 +550,7 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
         for var_name in observable_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#cae6df', style='filled')
     with g.subgraph() as s:
-        s.attr(rank='same')
+        s.attr()
         for var_name in latent_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#f5e6ca', style='filled')
     with g.subgraph() as s:
@@ -567,13 +582,16 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
                 lhs = lhs.strip()
                 if var != lhs:
                     label = edge_labels.get((var, lhs), '')
-                    g.edge(var.strip(), lhs, dir='forward', label=label)
-                    '''
-                    if var.strip() in indicator_variable_names:
-                        g.edge(lhs, var.strip(), dir='forward', label=label)
-                    else:
-                        g.edge(var.strip(), lhs, dir='forward', label=label)
-                    '''
+                    g.edge(lhs, var, dir='forward', label=label)
+
+        if '~' in line and '=~' not in line and '~~' not in line:
+            lhs, rhs = line.split('~', maxsplit=1)  
+            rhs_vars = rhs.strip().split('+')
+            for var in rhs_vars:
+                var = var.strip()
+                lhs = lhs.strip()
+                label = edge_labels.get((lhs, var), '')
+                g.edge(var, lhs, dir='forward', color='#0000FF', label=label, fontcolor="blue")
                 
 
         # Covariances / Variances
@@ -582,16 +600,6 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
             label = edge_labels.get((lhs.strip(), rhs.strip()), '')
             g.edge(lhs.strip(), rhs.strip(), dir='both', style='dashed', label=label)
 
-        # Variances (identity matrix)
-        '''
-        elif '=~' in line:
-            var_name = line.split('=')[0].strip()
-            label = "Var"
-            value = edge_values.get((var_name, var_name), '')
-            label_with_value = f"{label} (Est: {value:.2f})"
-            # label_with_value = ''
-            g.edge(var_name, var_name, dir='none', label=label_with_value)
-        '''
 
     # Set the graph attributes for size and imagescale
     graph_name = 'sem_graph_results_full'
@@ -799,6 +807,7 @@ def interepret_sem_inspect(sem_inspect, dependent_dict, parameters_dict):
         interpretation += "Its centrality suggests that it's crucial for understanding the overall dynamics of the model.\n"
         # print(interpretation)
 
+        '''
         # Interpret Influences on the construct
         interpretation += "\n**Influences**:\n"
 
@@ -821,10 +830,10 @@ def interepret_sem_inspect(sem_inspect, dependent_dict, parameters_dict):
                 interpretation += f"\n  - `{latent_var}` has a statistically `{latent_var_significant}` `{latent_var_relation}` influence to `{dependent_variable_name}`, (Estimate: {latent_var_estimate:.3f}, p-value: {latent_var_p_value:.3f})."
             else: 
                 interpretation += f"\n  - `{latent_var}` has a `{latent_var_relation}` influence to `{dependent_variable_name}`, but `NOT` statistically significant (Estimate: {latent_var_estimate:.3f}, p-value: {latent_var_p_value:.3f})."
-
+        '''
         # Interpret Relations on the construct
         interpretation += '\n'
-        interpretation += "\n**Relations**:\n"
+        interpretation += "\n**Regression Relations**:\n"
 
         # Filter rows where the construct is the lval
         latent_rows = sem_inspect[sem_inspect['lval'] == dependent_variable_name]
