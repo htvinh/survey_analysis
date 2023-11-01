@@ -135,16 +135,18 @@ if model_file_path is not None:
                 'variables': demographic_dict
             },
         ]
-        print(demographic_dict)
-        perform_descriptive_analysis(data_original, variable_dicts)
-
+        
         # Pre-process data
         data_normalized, label_mappings, demographic_cols_names, \
             observable_cols_names, latent_cols_names, \
             dependent_cols_names = \
             pre_process_data(data_original, demographic_dict, observable_dict, latent_dict, dependent_dict)
 
-        # st.write(data_normalized)
+        st.subheader('\nData Normalized')
+        st.write(data_normalized)
+
+        st.subheader('\nData Normalized Statistics')
+        st.write(data_normalized.describe())
 
         st.header("Testing the reliability of the scale using Cronbach's alpha for Observable Variables")
         # Calculate Cronbach's alpha

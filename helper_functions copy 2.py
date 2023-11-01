@@ -6,7 +6,6 @@ import math
 
 from sklearn.preprocessing import LabelEncoder
 
-import re
 
 
 
@@ -20,7 +19,6 @@ def create_new_directory(dir_path):
         for f in os.listdir(dir_path):
             os.remove(os.path.join(dir_path, f))
 
-'''
 def create_mapping_dict(text):
     # Split the input text into pairs of value and number
     pairs = [item.strip() for item in text.split(",")]
@@ -32,8 +30,6 @@ def create_mapping_dict(text):
         mapping_dict[value.strip()] = int(number.strip(")"))
 
     return mapping_dict
-
-'''
 
 def get_value_from_text(mapping_dict, input_text):
     # Remove leading/trailing spaces and convert to title case for case-insensitive matching
@@ -69,7 +65,7 @@ def convert_categorical_columns(data):
     return df, label_mappings
 
 def get_back_original_label_from_numerical_label(label_mappings, column_name, numerical_label):
-    numerical_label = int(numerical_label)
+
     # Access the label mapping for a specific column
     mapping_for_category = label_mappings[column_name]
     # Use the label mapping to get the original label from a numerical label
@@ -102,13 +98,28 @@ def normalize_variable_names(variable_dict):
     return normalized_variables
 
 # Define a function to normalize column names and string values
+'''
+def normalize_string(element):
+    # If the input is a pandas Series
+    if isinstance(element, pd.Series):
+        if element.dtype == 'object':
+            return element.str.strip().str.replace(' ', '_')
+        else:
+            return element  # Return the original column for non-string data
+    # If the input is a string
+    elif isinstance(element, str):
+        return element.strip().replace(' ', '_')
+    else:
+        return element  # Return the original input for other data types
+
+'''
+# Define a function to normalize column names and string values
 # Remove any leading and trailing spaces. Replace spaces with underscores
 def normalize_dataframe(df):# Define a function to normalize a single string
     df = df.astype(str)
 
     def normalize_string(x):
         x = x.strip()
-        x = re.sub(r'\s+', ' ', x)
         if isinstance(x, str):
             if '+' in x:
                 # Split the string by '+' and normalize each segment
@@ -120,7 +131,6 @@ def normalize_dataframe(df):# Define a function to normalize a single string
     column_to_clean = 'Variable'
     if column_to_clean in df.columns:
         df[column_to_clean] = df[column_to_clean].str.strip()
-        df[column_to_clean] = df[column_to_clean].map(normalize_string)
 
     column_to_clean = 'Related_Variables'
     if column_to_clean in df.columns:
@@ -132,7 +142,6 @@ def normalize_dataframe(df):# Define a function to normalize a single string
             df[column] = pd.to_numeric(df[column])
         except ValueError:
             pass  # Ignore columns that cannot be converted to numerical
-
 
     return df
 

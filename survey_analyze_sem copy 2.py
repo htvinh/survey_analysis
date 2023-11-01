@@ -61,16 +61,13 @@ def pre_process_data(data, demographic_dict, observable_dict, latent_dict, depen
     # data = normalize_column_names(data)
     data_normalized = normalize_dataframe(data)
 
-    # Rename Demographic columns to reduce the columns name. Related to Subgroups Analysis
-    data_normalized, demographic_cols_names = rename_columns_by_index(data_normalized, demographic_dict)
-
     # To convert the categorical columns to numerical
     data_normalized, label_mappings = convert_categorical_columns(data_normalized)
 
     data_normalized = data_normalized.astype(float)
 
     # Rename Demographic columns to reduce the columns name
-    # data_normalized, demographic_cols_names = rename_columns_by_index(data_normalized, demographic_dict)
+    data_normalized, demographic_cols_names = rename_columns_by_index(data_normalized, demographic_dict)
 
     # Rename Observation, Latent, Dependent columns to reduce the columns name
     data_normalized, observable_cols_names = rename_variable_columns(data_normalized, observable_dict)
@@ -289,11 +286,9 @@ def create_sem_model_spec(filepath):
             dependent_dict, varcovar_dict, parameters_dict
 
 def extract_indicators_from_sem_spec(sem_spec):
-    
-    # Regular expression to match indicators with 'Q' and a number at the end
-    # regex = re.compile(r'\b\w+_Q\d\b')
-    regex = re.compile(r'\b[\w_()]+_Q\d\b')
 
+    # Regular expression to match indicators with 'Q' and a number at the end
+    regex = re.compile(r'\b\w+_Q\d\b')
 
     # Use re.findall() to find all matching indicators
     indicators = re.findall(regex, sem_spec)
@@ -309,18 +304,25 @@ def extract_indicators_from_sem_spec(sem_spec):
 def create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, dependent_dict, graph_name):
     # Initialize the Graphviz Digraph
     g = graphviz.Digraph('SEM', format='png', engine='dot')
-    g.attr(rankdir='LR', overlap='scale', splines='true', fontsize='12')  
+    g.attr(rankdir='RL', overlap='scale', splines='true', fontsize='12')  
     
     # Extract names from dictionaries
     latent_variable_names = [item['Variable'] for item in latent_dict]
     dependent_variable_names = [item['Variable'] for item in dependent_dict]
     observable_variable_names = [item['Variable'] for item in observable_dict]
 
+    # observable_variable_names = sorted(observable_variable_names, reverse=True)
+    # latent_variable_names = sorted(latent_variable_names, reverse=True)
+    # dependent_variable_names = sorted(dependent_variable_names, reverse=True)
+
+
     indicator_variable_names = extract_indicators_from_sem_spec(sem_model_spec)
+    # indicator_variable_names = sorted(indicator_variable_names, reverse=True)
+
 
     # Create subgraphs for alignment
     with g.subgraph() as s:
-        s.attr(rankdir='LR') #rankdir='RL') #rank='same')
+        s.attr() #rank='same')
         for indicator_name in indicator_variable_names:
             s.node(indicator_name, shape='box', fillcolor='#e6f2ff', style='filled')
 
@@ -328,23 +330,15 @@ def create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, de
     g.edge(indicator_variable_names[-1], observable_variable_names[0], style='invis')  # From indicators to observables
 
     with g.subgraph() as s:
-        s.attr(rankdir='LR', rank='same')
+        s.attr(rank='same')
         for var_name in observable_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#cae6df', style='filled')
-
-    # Create invisible edges between a node from one subgraph to a node from the next subgraph
-    g.edge(observable_variable_names[-1], latent_variable_names[0], style='invis')  # From indicators to observables
-
     with g.subgraph() as s:
-        s.attr() #rank='same')
+        s.attr(rank='same')
         for var_name in latent_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#f5e6ca', style='filled')
-
-    # Create invisible edges between a node from one subgraph to a node from the next subgraph
-    # g.edge(latent_variable_names[-1], dependent_variable_names[0], style='invis')  # From indicators to observables
-
     with g.subgraph() as s:
-        s.attr() #rank='same') #rank='same')
+        s.attr(rank='same') #rank='same')
         for var_name in dependent_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#FFFF00', style='filled')
 
@@ -357,13 +351,10 @@ def create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, de
             lhs, rhs = lhs.strip(), rhs.strip()
             rhs_vars = rhs.strip().split('+')
             for var in rhs_vars:
-                g.edge(var.strip(), lhs, dir='forward')
-                '''
                 if var.strip() in indicator_variable_names:
                     g.edge(lhs, var.strip(), dir='forward')
                 else:
                     g.edge(var.strip(), lhs, dir='forward')
-                '''
         
         # Covariances / Variances
         if '~~' in line:
@@ -510,7 +501,7 @@ def create_label(row):
 def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict):
     # Initialize the Graphviz Digraph
     g = graphviz.Digraph('SEM', format='png', engine='dot')
-    g.attr(rankdir='LR', overlap='scale', splines='true', fontsize='12')
+    g.attr(rankdir='RL', overlap='scale', splines='true', fontsize='12')
     
     # Extract names from dictionaries
     latent_variable_names = [item['Variable'] for item in latent_dict]
@@ -567,14 +558,14 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
                 lhs = lhs.strip()
                 if var != lhs:
                     label = edge_labels.get((var, lhs), '')
-                    g.edge(var.strip(), lhs, dir='forward', label=label)
-                    '''
+
                     if var.strip() in indicator_variable_names:
                         g.edge(lhs, var.strip(), dir='forward', label=label)
                     else:
                         g.edge(var.strip(), lhs, dir='forward', label=label)
-                    '''
+
                 
+                #g.edge(var, lhs, dir='forward', label=label)  # Add the label to the edge
 
         # Covariances / Variances
         elif '~~' in line:
