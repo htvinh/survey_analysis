@@ -104,7 +104,7 @@ def read_model_spec(filepath):
     print(observable_df)
 
     # Read Latent Variables
-    latent_df = pd.read_excel(filepath, sheet_name='Latent_Variables')
+    latent_df = pd.read_excel(filepath, sheet_name='Construct_Variables')
     latent_df = normalize_dataframe(latent_df)
     columns_to_exclude = [col for col in latent_df.columns if substring in col.strip().lower()]
     latent_df = latent_df.drop(columns=columns_to_exclude)
@@ -239,7 +239,7 @@ def create_sem_model_spec(filepath):
     ### Observable / Measurement Variables
     {observable_spec} 
 
-    ### Latent (Construct) Variables
+    ### Construct Variables
     {latent_spec}
     
     ### Dependent (Construct) Variables
@@ -257,7 +257,7 @@ def create_sem_model_spec(filepath):
     ### Observable / Measurement Variables
     #: {observable_variable_list}
 
-    ### Latent (Construct) Variables
+    ### Construct Variables
     {latent_spec}
     
     ### Dependent (Construct) Variables
