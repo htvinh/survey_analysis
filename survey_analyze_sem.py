@@ -403,7 +403,7 @@ def conduct_sem_analysis(data, sem_model_spec, observable_dict, latent_dict, dep
 
 
     # Retrieve the results using the inspect method
-    sem_inspect = sem_model.inspect()
+    sem_inspect = sem_model.inspect(std_est=True)
     print('\n===================================')
     print(sem_inspect)
 
@@ -489,6 +489,11 @@ def create_label(row):
         estimate = None
 
     try:
+        estimate_std = float(row_dict.get('Est. Std'))
+    except (TypeError, ValueError):
+        estimate_std = None
+
+    try:
         std_err = float(row_dict.get('Std. Err'))
     except (TypeError, ValueError):
         std_err = None
@@ -511,6 +516,14 @@ def create_label(row):
             parts.append(f"Est: {estimate}")
         else:
             parts.append(f"Est: {estimate:.3f}")
+
+    if estimate_std is not None and not pd.isna(estimate_std):
+        if isinstance(estimate_std, float) and estimate_std.is_integer():
+            estimate_std = int(estimate_std)
+            parts.append(f"Est Std: {estimate_std}")
+        else:
+            parts.append(f"Est Std: {estimate_std:.3f}")
+
     #if estimate is not None and not pd.isna(std_err):
     #    parts.append(f"Std. Err: {std_err:.2f}")
     if p_value is not None and not pd.isna(p_value):
