@@ -524,7 +524,7 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
     # Initialize the Graphviz Digraph
     g = graphviz.Digraph('SEM', format='png', engine='dot')
     # g.attr(rankdir='LR', overlap='scale', splines='true', fontsize='12')
-    g.attr(rankdir='RL', fontsize='12')
+    g.attr(rankdir='LR', fontsize='12')
     
     # Extract names from dictionaries
     latent_variable_names = [item['Variable'] for item in latent_dict]
@@ -545,11 +545,11 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
 
 
     with g.subgraph() as s:
-        s.attr(rank='same')
+        s.attr() #rank='same')
         for var_name in observable_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#cae6df', style='filled')
     with g.subgraph() as s:
-        s.attr(rank='same')
+        s.attr() #rank='same')
         for var_name in latent_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#f5e6ca', style='filled')
     with g.subgraph() as s:
