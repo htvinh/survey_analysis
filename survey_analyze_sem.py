@@ -55,22 +55,17 @@ def reformat_sem_model_to_display(sem_model_spec):
 
 def pre_process_data(data, demographic_dict, observable_dict, latent_dict, dependent_dict):
 
-    data = data.astype(str)
-
-    # Normalize the names of columns: to replace spaces by '_'
-    # data = normalize_column_names(data)
-    data_normalized = normalize_dataframe(data)
+    data_normalized = data.astype(str)
 
     # Rename Demographic columns to reduce the columns name. Related to Subgroups Analysis
     data_normalized, demographic_cols_names = rename_columns_by_index(data_normalized, demographic_dict)
 
+    print(data_normalized.columns)
     # To convert the categorical columns to numerical
     data_normalized, label_mappings = convert_categorical_columns(data_normalized)
 
-    data_normalized = data_normalized.astype(float)
+    #data_normalized = data_normalized.astype(float)
 
-    # Rename Demographic columns to reduce the columns name
-    # data_normalized, demographic_cols_names = rename_columns_by_index(data_normalized, demographic_dict)
 
     # Rename Observation, Latent, Dependent columns to reduce the columns name
     data_normalized, observable_cols_names = rename_variable_columns(data_normalized, observable_dict)
@@ -80,48 +75,39 @@ def pre_process_data(data, demographic_dict, observable_dict, latent_dict, depen
     return data_normalized, label_mappings, demographic_cols_names, observable_cols_names, latent_cols_names, dependent_cols_names
 
 
-def read_model_spec(filepath):
-    # Load data from Excel sheets
-    # Remove "Remarks" columns
-    substring = 'remark'
-
+def read_model_spec(filepath):   
     # Read Demographic Variables
     demographic_df = pd.read_excel(filepath, sheet_name='Demographic_Variables', header=0)
     demographic_df = normalize_dataframe(demographic_df)
-    columns_to_exclude = [col for col in demographic_df.columns if substring in col.strip().lower()]
-    demographic_df = demographic_df.drop(columns=columns_to_exclude)
-    demographic_df['column_index'] = demographic_df['column_index']-1
     demographic_dict = demographic_df.to_dict(orient='records')
-    print(demographic_df)
+    print('\n++++++++++++++++++++\n')
+    
 
     # Read Observable Variables
     observable_df = pd.read_excel(filepath, sheet_name='Observable_Variables', header=0)
     observable_df = normalize_dataframe(observable_df)
-    columns_to_exclude = [col for col in observable_df.columns if substring in col.strip().lower()]
-    observable_df = observable_df.drop(columns=columns_to_exclude)
-    observable_df['column_index_from'] = observable_df['column_index_from']-1
     observable_dict = observable_df.to_dict(orient='records')
     print(observable_df)
 
     # Read Latent Variables
     latent_df = pd.read_excel(filepath, sheet_name='Construct_Variables')
     latent_df = normalize_dataframe(latent_df)
-    columns_to_exclude = [col for col in latent_df.columns if substring in col.strip().lower()]
-    latent_df = latent_df.drop(columns=columns_to_exclude)
-    # if math.isnan(float(latent_df['column_index_from'])) is not True:
-    latent_df['column_index_from'] = latent_df['column_index_from']-1
     latent_dict = latent_df.to_dict(orient='records')
     print(latent_df)
 
     # Read Dependent Variables
     dependent_df = pd.read_excel(filepath, sheet_name='Dependent_Variables')
     dependent_df = normalize_dataframe(dependent_df)
-    columns_to_exclude = [col for col in dependent_df.columns if substring in col.strip().lower()]
-    dependent_df = dependent_df.drop(columns=columns_to_exclude)
-    # if math.isnan(float(dependent_df['column_index_from'])) is not True:
-    dependent_df['column_index_from'] = dependent_df['column_index_from']-1
     dependent_dict = dependent_df.to_dict(orient='records')
     print(dependent_df)
+
+    # Read Relations
+    relation_df = pd.read_excel(filepath, sheet_name='Relations')
+    relation_df = normalize_dataframe(relation_df)
+    relation_dict = relation_df.to_dict(orient='records')
+
+    print('\n++++++++++++++++++++\n')
+
 
     # Read variance/covariance relations
     varcovar_df = pd.read_excel(filepath, sheet_name='VarCovar_Relations')
@@ -131,11 +117,9 @@ def read_model_spec(filepath):
     # Read Model parameters
     parameters_df = pd.read_excel(filepath, sheet_name='Parameters')
     parameters_df = normalize_dataframe(parameters_df)
-    columns_to_exclude = [col for col in parameters_df.columns if substring in col.strip().lower()]
-    parameters_df = parameters_df.drop(columns=columns_to_exclude)
     parameters_dict = parameters_df.to_dict(orient='records')
 
-    return demographic_dict, observable_dict, latent_dict, dependent_dict, varcovar_dict, parameters_dict
+    return demographic_dict, observable_dict, latent_dict, dependent_dict, relation_dict, varcovar_dict, parameters_dict
 
 
 def create_construct(selected_variables):
@@ -175,17 +159,18 @@ def create_variable_specs(variable_dict):
 
 def convert_list_to_semopy_spec(input_list):
     semopy_dict = {}
-    
     for entry in input_list:
         variable = entry['Variable']
         num_items = entry['number_questions']
-        # print('=========', num_items)
-        # if math.isnan(float(num_items)) is not True and int(num_items) > 0:
-        # if num_items is not None: # and int(num_items) > 0:
-        questions = [f"{variable}_Q{i+1}" for i in range(num_items)]
+        num_items = str(num_items).strip()
+        related_variables = entry.get('Related_Variables', '')
         
-        semopy_dict[variable] = ' + '.join(questions)
-
+        if num_items != REPLACE_NAN: # If not NaN
+            num_items = int(float(num_items))
+            questions = [f"{variable}_Q{i+1}" for i in range(num_items)]
+            semopy_dict[variable] = ' + '.join(questions)
+        else:
+            semopy_dict[variable] = related_variables
     output = "\n".join([f"{key} =~ {value}" for key, value in semopy_dict.items()])
         
     return output
@@ -194,12 +179,14 @@ def convert_list_to_semopy_spec(input_list):
 # Create SEM Model Spec Full 
 def create_sem_model_spec(filepath):
     demographic_dict, observable_dict, latent_dict, \
-    dependent_dict, varcovar_dict, parameters_dict = read_model_spec(filepath)
+    dependent_dict, relation_dict, varcovar_dict, parameters_dict = read_model_spec(filepath)
 
     observable_df = pd.DataFrame(observable_dict)
     latent_df = pd.DataFrame(latent_dict)
     dependent_df = pd.DataFrame(dependent_dict)
+    relation_df = pd.DataFrame(relation_dict)
     varcovar_df = pd.DataFrame(varcovar_dict)
+    print(latent_df)
     
     observable_variable_list = "\n#-".join([f"{row['Variable']}" for _, row in observable_df.iterrows()])
     observable_spec= convert_list_to_semopy_spec(observable_dict)
@@ -211,9 +198,11 @@ def create_sem_model_spec(filepath):
     dependent_spec= convert_list_to_semopy_spec(dependent_dict)
     # print(latent_spec)
 
-    latent_structural_spec = "\n".join([f"{row['Variable']} ~ {row['Related_Variables']}" for _, row in latent_df.iterrows()])
+    # latent_structural_spec = "\n".join([f"{row['Variable']} ~ {row['Related_Variables']}" for _, row in latent_df.iterrows()])
 
-    dependent_structural_spec = "\n".join([f"{row['Variable']} ~ {row['Related_Variables']}" for _, row in dependent_df.iterrows()])
+    # dependent_structural_spec = "\n".join([f"{row['Variable']} ~ {row['Related_Variables']}" for _, row in dependent_df.iterrows()])
+
+    relation_spec = "\n".join([f"{row['Variable']} ~ {row['Related_Variables']}" for _, row in relation_df.iterrows()])
 
     # Generate variance and covariance specifications
     # Initialize empty lists for variances and covariances
@@ -242,12 +231,11 @@ def create_sem_model_spec(filepath):
     ### Construct Variables
     {latent_spec}
     
-    ### Dependent (Construct) Variables
+    ### Dependent Variables
     {dependent_spec}
 
     ### Structural Model /Relations
-    {latent_structural_spec}
-    {dependent_structural_spec}
+    {relation_spec}
 
     """ 
 
@@ -264,8 +252,7 @@ def create_sem_model_spec(filepath):
     {dependent_spec}
 
     ### Structural Model /Relations
-    {latent_structural_spec}
-    {dependent_structural_spec}
+    {relation_spec}
 
 
     """ 
@@ -344,7 +331,7 @@ def create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, de
     g.edge(observable_variable_names[-1], latent_variable_names[0], style='invis')  # From indicators to observables
 
     with g.subgraph() as s:
-        s.attr() #rank='same')
+        s.attr(rank='same')
         for var_name in latent_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#f5e6ca', style='filled')
 
@@ -392,7 +379,6 @@ def create_sem_model_spec_graph(sem_model_spec, observable_dict, latent_dict, de
 
 def conduct_sem_analysis(data, sem_model_spec, observable_dict, latent_dict, dependent_dict):
     #  Conduct SEM Analysis
-
     # Instantiate and fit the model
     sem_model = Model(sem_model_spec)
     sem_result = sem_model.fit(data)
@@ -405,7 +391,6 @@ def conduct_sem_analysis(data, sem_model_spec, observable_dict, latent_dict, dep
     # Retrieve the results using the inspect method
     sem_inspect = sem_model.inspect(std_est=True)
     print('\n===================================')
-    print(sem_inspect)
 
     # Post process SEM results
     sem_inspect_enhanced, sem_inspect_filtered, graph_filtered_results, graph_fulll_results = post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict)
@@ -538,7 +523,8 @@ def create_label(row):
 def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict):
     # Initialize the Graphviz Digraph
     g = graphviz.Digraph('SEM', format='png', engine='dot')
-    g.attr(rankdir='LR', overlap='scale', splines='true', fontsize='12')
+    # g.attr(rankdir='LR', overlap='scale', splines='true', fontsize='12')
+    g.attr(rankdir='LR', fontsize='12')
     
     # Extract names from dictionaries
     latent_variable_names = [item['Variable'] for item in latent_dict]
@@ -563,7 +549,7 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
         for var_name in observable_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#cae6df', style='filled')
     with g.subgraph() as s:
-        s.attr()
+        s.attr(rank='same')
         for var_name in latent_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#f5e6ca', style='filled')
     with g.subgraph() as s:

@@ -9,6 +9,7 @@ from sklearn.preprocessing import LabelEncoder
 import re
 
 
+REPLACE_NAN = 'NA'
 
 def create_new_directory(dir_path):
     # Check if the directory exists
@@ -20,20 +21,6 @@ def create_new_directory(dir_path):
         for f in os.listdir(dir_path):
             os.remove(os.path.join(dir_path, f))
 
-'''
-def create_mapping_dict(text):
-    # Split the input text into pairs of value and number
-    pairs = [item.strip() for item in text.split(",")]
-
-    # Create a dictionary from the pairs
-    mapping_dict = {}
-    for pair in pairs:
-        value, number = pair.split("(")
-        mapping_dict[value.strip()] = int(number.strip(")"))
-
-    return mapping_dict
-
-'''
 
 def get_value_from_text(mapping_dict, input_text):
     # Remove leading/trailing spaces and convert to title case for case-insensitive matching
@@ -56,6 +43,7 @@ def convert_categorical_columns(data):
     # Initialize the LabelEncoder
     label_encoder = LabelEncoder()
 
+    print(df.columns)
     # Iterate through each column in the DataFrame
     for column in df.columns:
         if df[column].dtype == 'object':  # Check if the column has categorical data
@@ -65,6 +53,7 @@ def convert_categorical_columns(data):
             # Create a mapping of original labels to numerical labels
             label_mappings[column] = dict(zip(label_encoder.transform(label_encoder.classes_), label_encoder.classes_))
 
+        print('\n===========', column)
     # Return both the transformed DataFrame and the label mappings
     return df, label_mappings
 
@@ -104,8 +93,20 @@ def normalize_variable_names(variable_dict):
 # Define a function to normalize column names and string values
 # Remove any leading and trailing spaces. Replace spaces with underscores
 def normalize_dataframe(df):# Define a function to normalize a single string
-    df = df.astype(str)
+    # List of columns to keep number_questions	column_index_from number_options	column_index	used_as_moderator
+    columns_to_keep = ['Variable', 'number_questions', 'column_index_from', 'Related_Variables', 
+                       'number_options', 'column_index', 'used_as_moderator',
+                       'parameter',	'high_threshold','moderate_threshold', 'Variable_1', 'Variable_2']  # 'Column4' is not in the DataFrame
 
+    # Filter the DataFrame to keep only the columns present in the list
+    columns_to_keep = [col for col in columns_to_keep if col in df.columns]
+    df = df[columns_to_keep]
+
+    # Fill missing and space values with 'NA'
+    replace_nan = REPLACE_NAN
+    df = df.fillna(replace_nan).replace('', replace_nan)
+
+    df = df.astype(str)
     def normalize_string(x):
         x = x.strip()
         x = re.sub(r'\s+', ' ', x)
@@ -126,13 +127,25 @@ def normalize_dataframe(df):# Define a function to normalize a single string
     if column_to_clean in df.columns:
         df[column_to_clean] = df[column_to_clean].map(normalize_string)
 
+    # Convert Column_Index to Python based Index that begins from 0
+    column_to_cleans = ['column_index', 'column_index_from']
+    for column_to_clean in column_to_cleans:
+        if column_to_clean in df.columns:
+            # Convert the values in the column to numeric; set errors='coerce' to turn invalid parsing into NaN
+            df[column_to_clean] = pd.to_numeric(df[column_to_clean], errors='coerce')
+            
+            # After conversion, subtract 1 only from the valid numeric values
+            mask = ~df[column_to_clean].isna()  # This will be True for non-NaN values
+            df.loc[mask, column_to_clean] = df.loc[mask, column_to_clean] - 1
+
+        
+
     # Automatically detect and convert columns with numerical data
     for column in df.columns:
         try:
             df[column] = pd.to_numeric(df[column])
         except ValueError:
             pass  # Ignore columns that cannot be converted to numerical
-
 
     return df
 
@@ -197,19 +210,23 @@ def rename_columns_by_index(df, demographic_dict):
         demographic_cols_names.append(new_column_name)
     return df, demographic_cols_names
 
-# Rename Independent columns according to Independent_Cols
+# Rename Column Names based on the Spec
 def rename_variable_columns(df, variable_dict):
-    variable_cols_names = []  # Initialize a list to store independent column names
+    variable_cols_names = []  # Initialize a list to store  column names
     for col in variable_dict:
-        col_name = col.get('Variable')
-        col_index_from = col.get('column_index_from')
-        number_questions = col.get('number_questions')
-        # print('\n=========')
-        # print(col_index_from, number_questions)
-        # if math.isnan(float(col_index_from)) is not True or math.isnan(float(number_questions)) is not True:
-        if type(col_index_from) == str or type(number_questions) == str:
+        col_name = col['Variable']
+        col_index_from = col['column_index_from']
+        number_questions = col['number_questions']
+        
+        number_questions = str(number_questions).strip()
+        col_index_from = str(col_index_from).strip()
+
+        if number_questions == 'NA' or col_index_from == 'NA' :
             continue
         else:
+            number_questions = int(float(number_questions))
+            col_index_from = int(float(col_index_from))
+
             col_index_to = col_index_from + number_questions
 
             for i in range(col_index_from, col_index_to):
