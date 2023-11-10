@@ -847,11 +847,11 @@ def interepret_sem_inspect(sem_inspect, dependent_dict, parameters_dict):
             latent_var_p_value = latent_rows.at[row_index, 'p-value']
 
             # if construc_significant == 'Significant':
-            interpretation += f"  - `{dependent_variable_name}` has a statistically `{latent_var_significant}` {latent_var_relation.lower()} relationship with `{latent_var}` (Estimate: {latent_var_estimate:.3f}), suggesting "
+            interpretation += f"  - `{latent_var}` has a statistically `{latent_var_significant}` (p-val: {latent_var_p_value:.3f}) {latent_var_relation.lower()} relationship with `{dependent_variable_name}` (Estimate: {latent_var_estimate:.3f}), suggesting "
             if latent_var_relation == 'Positive':
-                interpretation += f"an increase in (1 unit) `{dependent_variable_name}` is associated with an increase (`{latent_var_estimate:.3f}`) in `{latent_var}`.\n"
+                interpretation += f"an increase of 1 unit in `{latent_var}` is associated with an increase of (`{latent_var_estimate:.3f}`) in `{dependent_variable_name}`.\n"
             else:
-                interpretation += f"an increase (1 unit) in `{dependent_variable_name}` is associated with a decrease (`{latent_var_estimate:.3f}`) in `{latent_var}`.\n"
+                interpretation += f"an increase of 1 unit in `{latent_var}` is associated with a decrease (`{latent_var_estimate:.3f}`) in `{dependent_variable_name}`.\n"
 
 
     interpretations.append(interpretation)
