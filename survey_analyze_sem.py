@@ -393,9 +393,9 @@ def conduct_sem_analysis(data, sem_model_spec, observable_dict, latent_dict, dep
     print('\n===================================')
 
     # Post process SEM results
-    sem_inspect_enhanced, sem_inspect_filtered, graph_filtered_results, graph_fulll_results = post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict)
+    sem_inspect_enhanced, sem_inspect_filtered, graph_filtered_results, graph_fulll_results, graph_short_results = post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict)
 
-    return sem_result, sem_stats, sem_inspect, sem_inspect_enhanced, sem_inspect_filtered, graph_filtered_results, graph_fulll_results
+    return sem_result, sem_stats, sem_inspect, sem_inspect_enhanced, sem_inspect_filtered, graph_filtered_results, graph_fulll_results, graph_short_results
 
 def post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict):
 
@@ -413,9 +413,11 @@ def post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, laten
 
     graph_filtered_results = create_graph_for_sem_results_filtered(sem_model_spec, sem_inspect_filtered_results)
 
+    graph_short_results = create_graph_for_sem_results_short(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict)
+
     graph_fulll_results = create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict)
 
-    return sem_inspect_enhanced, sem_inspect_filtered_results, graph_filtered_results, graph_fulll_results
+    return sem_inspect_enhanced, sem_inspect_filtered_results, graph_filtered_results, graph_fulll_results, graph_short_results
 
     
 
@@ -610,6 +612,73 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
     return graph_path
 
 
+def create_graph_for_sem_results_short(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict):
+    # Initialize the Graphviz Digraph
+    g = graphviz.Digraph('SEM', format='png', engine='dot')
+    g.attr(rankdir='LR', fontsize='12')
+    
+    # Extract names from dictionaries
+    latent_variable_names = [item['Variable'] for item in latent_dict]
+    dependent_variable_names = [item['Variable'] for item in dependent_dict]
+    observable_variable_names = [item['Variable'] for item in observable_dict]
+
+    with g.subgraph() as s:
+        s.attr() #rank='same')
+        for var_name in observable_variable_names:
+            s.node(var_name, shape='ellipse', fillcolor='#cae6df', style='filled')
+            
+    with g.subgraph() as s:
+        s.attr() #rank='same')
+        for var_name in latent_variable_names:
+            s.node(var_name, shape='ellipse', fillcolor='#f5e6ca', style='filled') ##f5e6ca
+    with g.subgraph() as s:
+        s.attr() #rank='same')
+        for var_name in dependent_variable_names:
+            s.node(var_name, shape='ellipse', fillcolor='#FFFF00', style='filled')
+
+    # To keep track of nodes
+    nodes_added = set()
+
+    # Extract edge labels and values from sem_inspect dataframe
+    edge_labels = {}
+    edge_values = {}
+    for _, row in sem_inspect.iterrows():
+        label = create_label(row)
+        edge_labels[(row['lval'], row['rval'])] = label
+        edge_values[(row['lval'], row['rval'])] = row['Estimate']
+
+    # Parse the sem_model_spec to extract relationships and nodes
+    lines = sem_model_spec.strip().split("\n")
+    for line in lines:
+        if '~' in line and '=~' not in line and '~~' not in line:
+            lhs, rhs = line.split('~', maxsplit=1)  
+            rhs_vars = rhs.strip().split('+')
+            for var in rhs_vars:
+                var = var.strip()
+                lhs = lhs.strip()
+                label = edge_labels.get((lhs, var), '')
+                g.edge(var, lhs, dir='forward', color='#0000FF', label=label, fontcolor="blue")
+                
+
+        # Covariances / Variances
+        elif '~~' in line:
+            lhs, rhs = line.split('~~', maxsplit=1)
+            label = edge_labels.get((lhs.strip(), rhs.strip()), '')
+            g.edge(lhs.strip(), rhs.strip(), dir='both', style='dashed', label=label)
+
+
+    # Set the graph attributes for size and imagescale
+    graph_name = 'sem_graph_results_short'
+    g.attr(dpi='600', imagescale='true')
+    save_path = f"{output_path}{graph_name}"
+    g.render(save_path)
+
+    graph_path = f"{output_path}{graph_name}.png"
+    return graph_path
+
+
+
+
 def create_graph_for_sem_results_filtered(sem_model_spec, sem_inspect):
     g = graphviz.Digraph('SEM', format='png', engine='dot')
     g.attr(rankdir='LR')
@@ -676,6 +745,8 @@ def create_graph_for_sem_results_filtered(sem_model_spec, sem_inspect):
 
     graph_path = f"{output_path}/sem_graph_results_filtered.png"
     return graph_path
+
+
 
 def extract_model_parameters(model_parameters_dict, parameter_name):
     for param_dict in model_parameters_dict:

@@ -224,9 +224,8 @@ if model_file_path is not None:
         st.code(sem_model_spec_to_display)
 
 
-        sem_result, sem_stats, sem_inspect, sem_inspect_enhanced, \
-        sem_inspect_filtered, graph_filtered_results, \
-        graph_fulll_results = conduct_sem_analysis(data_normalized, sem_model_spec, observable_dict, latent_dict, dependent_dict)
+        sem_result, sem_stats, sem_inspect, sem_inspect_enhanced, sem_inspect_filtered, \
+        graph_filtered_results, graph_fulll_results, graph_short_results = conduct_sem_analysis(data_normalized, sem_model_spec, observable_dict, latent_dict, dependent_dict)
        
 
         st.subheader('\nSEM Stats')
@@ -259,6 +258,8 @@ if model_file_path is not None:
 
         st.subheader('SEM Results Full Graph')
         st.image(graph_fulll_results)
+
+        st.image(graph_short_results)
         
         st.subheader('\nInterepretations')
         
