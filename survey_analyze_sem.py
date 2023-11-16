@@ -211,7 +211,8 @@ def create_sem_model_spec(filepath):
     # Iterate through each row in varcovar_df
     for idx, row in varcovar_df.iterrows():
         # Check if Variable_1 and Variable_2 are NaN before adding them to covariance_specs
-        if not pd.isna(row['Variable_1']):
+        # if not pd.isna(row['Variable_1']):
+        if row['Variable_1'] != REPLACE_NAN or row['Variable_2'] != REPLACE_NAN:
             if row['Variable_1'] == row['Variable_2']:
                 variance_specs.append(f"{row['Variable_1']} =~ {row['Variable_2']}")
             elif row['Variable_1'] != row['Variable_2']:

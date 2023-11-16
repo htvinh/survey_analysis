@@ -9,7 +9,7 @@ from sklearn.preprocessing import LabelEncoder
 import re
 
 
-REPLACE_NAN = 'NA'
+REPLACE_NAN = 'NAN'
 
 def create_new_directory(dir_path):
     # Check if the directory exists
