@@ -345,8 +345,8 @@ if model_file_path is not None and data_file_path is not None:
 
             st.image(graph_filtered_results)
 
-
-
+        
+        st.write('\n\n-----------\n\n\n\n')
         st.subheader('\n\nUsed Packages:')
         st.write('- scikit-learn and statsmodels for Regression Analysis')
         st.write('- semopy for SEM analysis, https://semopy.com/')
