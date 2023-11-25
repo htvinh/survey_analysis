@@ -325,17 +325,17 @@ if model_file_path is not None and data_file_path is not None:
                 graph_filtered_results, graph_fulll_results \
                 = sem.conduct_sem_analysis(data_normalized, sem_model_spec, independent_dict, latent_dict, dependent_dict)
 
-            st.subheader('\nSEM Model Statistics')
+            st.subheader('\nSEM Modeling Statistics')
             st.write(sem_stats)
             stats_table, overall_msg = sem.interpret_sem_stats(sem_stats, parameters_dict)
             st.write(stats_table)
             st.write(overall_msg)
 
-            st.subheader('\nSEM Model Results')
+            st.subheader('\nSEM Analysis Results')
             st.write(sem_inspect_enhanced)
 
             interepretation_sem_inspect = sem.interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_dict, parameters_dict)
-            st.subheader('\nInterpret SEM Model Results')
+            st.subheader('\nInterpret SEM Analysis Results')
             for interpretation in interepretation_sem_inspect:
                 st.markdown(interpretation)
                 st.write("---")  # Adds a horizontal line for separation
