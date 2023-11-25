@@ -4,6 +4,12 @@ import survey_analysis_sem as sem
 from survey_quality_analysis import *
 from survey_common import *
 
+from PIL import Image
+# Increase the maximum allowed image size
+Image.MAX_IMAGE_PIXELS = None  # This removes the limit entirely
+# or set it to a specific limit that's high enough for your needs
+# Image.MAX_IMAGE_PIXELS = 200000000  # for example, 200 million pixels
+
 
 import streamlit as st
 

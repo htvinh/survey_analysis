@@ -879,7 +879,6 @@ def interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_di
         # Filter rows where the construct is the lval
         latent_rows = sem_inspect[sem_inspect['lval'] == dependent_variable_name]
         latent_rows = latent_rows.reset_index(drop=True)
-        print('\n==================')
         # print(latent_rows)
         for index, latent_var in enumerate(latent_variables_df):
             row_index = index 
