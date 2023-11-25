@@ -43,7 +43,6 @@ def convert_categorical_columns(data):
     # Initialize the LabelEncoder
     label_encoder = LabelEncoder()
 
-    print(df.columns)
     # Iterate through each column in the DataFrame
     for column in df.columns:
         if df[column].dtype == 'object':  # Check if the column has categorical data
@@ -53,7 +52,6 @@ def convert_categorical_columns(data):
             # Create a mapping of original labels to numerical labels
             label_mappings[column] = dict(zip(label_encoder.transform(label_encoder.classes_), label_encoder.classes_))
 
-        print('\n===========', column)
     # Return both the transformed DataFrame and the label mappings
     return df, label_mappings
 
@@ -205,7 +203,6 @@ def rename_columns_by_index(df, demographic_dict):
     for col in demographic_dict:
         col_index = col.get('column_index')
         new_column_name = col.get('Variable')
-        # print(col_index, new_column_name)
         df.rename(columns={df.columns[col_index]: new_column_name}, inplace=True)
         demographic_cols_names.append(new_column_name)
     return df, demographic_cols_names

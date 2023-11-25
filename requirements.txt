@@ -1,11 +1,12 @@
-wheel
 streamlit
-python-docx
-openpyxl
-seaborn
+pandas
+numpy
+statsmodels
 scikit-learn
-matplotlib
-# pygraphviz
 graphviz
+wheel
 semopy
-networkx
+matplotlib
+seaborn
+openpyxl
+lxml

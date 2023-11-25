@@ -60,7 +60,7 @@ def compute_cronbach_alpha(data_normalized, observable_dict):
     overall_alpha = round(overall_alpha, 2)
     overall_alpha_evaluation = interpret_alpha(overall_alpha)
 
-    print(f"Overall Cronbach's Alpha: {overall_alpha}")
+    print(f"\n\n====  Overall Cronbach's Alpha: {overall_alpha}")
 
     return f"{overall_alpha}, '{overall_alpha_evaluation}'", alpha_table
 
@@ -72,9 +72,9 @@ def interpret_alpha(alpha):
     elif alpha > 0.7:
         return "Acceptable, > 0.7"
     elif alpha > 0.6:
-        return "Questionable, > 0.6"
+        return "Questionable, < 0.7"
     elif alpha > 0.5:
-        return "Poor, > 0.5"
+        return "Poor, < 0.6"
     else:
         return "Unacceptable, <= 0.5"
 
@@ -184,7 +184,7 @@ def compute_correlation(data_normalized, observable_dict):
 
     correlation_matrix = observable_data.corr(method='pearson')
 
-    print("Pearson correlation coefficient matrix: ")
+    print("\n\n========  Pearson correlation coefficient matrix: ")
     print(correlation_matrix)
     # Save the Correlation Table to an Excel file
     # Set index=False to exclude the DataFrame index
@@ -224,7 +224,21 @@ def interpret_correlation(correlation_matrix, threshold_strong,threshold_moderat
     high_correlation_pairs = [(var1, var2) for var1 in correlation_matrix.columns \
             for var2 in correlation_matrix.columns \
                 if (correlation_matrix.loc[var1, var2] > threshold_high) and (var1 != var2)]
-    
+    # Remove duplicates by converting the list to a set and back to a list
+    # Create a set to keep track of unique pairs
+    unique_pairs = set()
+
+    # Create a list to store the unique pairs in the desired order
+    unique_pairs_list = []
+
+    # Iterate through the input pairs and add them to the set (which automatically removes duplicates)
+    # while also adding them to the list if they are not already in the set
+    for pair in high_correlation_pairs:
+        reversed_pair = (pair[1], pair[0])  # Create the reversed pair
+        if pair not in unique_pairs and reversed_pair not in unique_pairs:
+            unique_pairs.add(pair)
+            unique_pairs_list.append(pair)
+
     # Interpretation
     interpretation = []
     if avg_correlation > threshold_strong:
@@ -240,7 +254,7 @@ def interpret_correlation(correlation_matrix, threshold_strong,threshold_moderat
         interpretation.append('Consider reviewing their relevance to the study.')
     if high_correlation_pairs:
         interpretation.append(f"Some pairs of variables are highly correlated, indicating potential redundancy. ") 
-        interpretation.append(f"These pairs are: " + ', '.join([f"({var1}, {var2})" for var1, var2 in high_correlation_pairs]) + ".")
+        interpretation.append(f"These pairs are: " + ', '.join([f"({var1}, {var2})" for var1, var2 in unique_pairs_list]) + ".")
         interpretation.append('Consider reviewing whether both variables in each pair are necessary, or whether dimensionality reduction or feature engineering might be appropriate.')
     return interpretation
 
