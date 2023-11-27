@@ -440,7 +440,12 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
                 lhs = lhs.strip()
                 if var != lhs:
                     label = edge_labels.get((var, lhs), '')
-                    g.edge(lhs, var, dir='forward', label=label)
+                    p_value = extract_p_value_from_label(label)
+                    if p_value > 0.5 and p_value != 1000:
+                        color = 'red'
+                    else:
+                        color = 'black'
+                    g.edge(var, lhs, dir='forward', color=color, label=label, fontcolor=color)
 
         if '~' in line and '=~' not in line and '~~' not in line:
             lhs, rhs = line.split('~', maxsplit=1)  
@@ -449,7 +454,12 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
                 var = var.strip()
                 lhs = lhs.strip()
                 label = edge_labels.get((lhs, var), '')
-                g.edge(var, lhs, dir='forward', color='#0000FF', label=label, fontcolor="blue")
+                p_value = extract_p_value_from_label(label)
+                if p_value > 0.5 and p_value != 1000:
+                    color = 'red'
+                else:
+                    color = 'blue'
+                g.edge(var, lhs, dir='forward', color=color, label=label, fontcolor=color)
                 
 
         # Covariances / Variances
@@ -559,7 +569,7 @@ def extract_p_value_from_label(label):
         p_value = float(p_value)
         return p_value
     else:
-        return None
+        return 1000
     
 
 
@@ -590,9 +600,6 @@ def create_graph_for_sem_results_short(sem_model_spec, sem_inspect, observable_d
         for var_name in dependent_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='#FFFF00', style='filled')
 
-    # To keep track of nodes
-    nodes_added = set()
-
     # Extract edge labels and values from sem_inspect dataframe
     edge_labels = {}
     edge_values = {}
@@ -615,7 +622,12 @@ def create_graph_for_sem_results_short(sem_model_spec, sem_inspect, observable_d
                 # if var != lhs:
                 if var not in indicator_variable_names:
                     label = edge_labels.get((var, lhs), '')
-                    g.edge(var, lhs, dir='forward', label=label)
+                    p_value = extract_p_value_from_label(label)
+                    if p_value > 0.5 and p_value != 1000:
+                        color = 'red'
+                    else:
+                        color = 'black'
+                    g.edge(var, lhs, dir='forward', label=label, color = color)
 
         if '~' in line and '=~' not in line and '~~' not in line:
             lhs, rhs = line.split('~', maxsplit=1)  
@@ -624,7 +636,12 @@ def create_graph_for_sem_results_short(sem_model_spec, sem_inspect, observable_d
                 var = var.strip()
                 lhs = lhs.strip()
                 label = edge_labels.get((lhs, var), '')
-                g.edge(var, lhs, dir='forward', color='#0000FF', label=label, fontcolor="blue")
+                p_value = extract_p_value_from_label(label)
+                if p_value > 0.5 and p_value != 1000:
+                    color = 'red'
+                else:
+                    color = 'blue'
+                g.edge(var, lhs, dir='forward', color=color, label=label, fontcolor=color)
                 
 
                 
