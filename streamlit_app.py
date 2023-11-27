@@ -13,6 +13,7 @@ Image.MAX_IMAGE_PIXELS = None  # This removes the limit entirely
 
 import streamlit as st
 
+st.set_page_config(layout="wide")
 
 
 # Create a Streamlit app title and description
