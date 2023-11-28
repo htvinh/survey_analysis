@@ -5,6 +5,8 @@ import statsmodels.api as sm
 import numpy as np
 # import os
 
+import re
+
 import graphviz
 
 from io import StringIO
@@ -103,6 +105,7 @@ def extract_indicators_from_model_spec_2(model_spec):
             _, rhs = line.split('=~', maxsplit=1)
             indicators.extend(rhs.strip().split('+'))
     return [indicator.strip() for indicator in indicators]
+
 
 def create_model_spec_graph_full(model_spec, independent_dict, dependent_dict, graph_name):
     # Initialize the Graphviz Digraph
@@ -694,3 +697,53 @@ def post_process_result_with_moderators(results_full, baseline_regression_result
         dataframes[relationship] = df
     
     return dataframes
+
+
+def generate_regression_equations(model_spec):
+    # Split the model specification into lines
+    model_lines = model_spec.split('\n')
+
+    # Initialize a dictionary to store coefficients
+    coefficients = {}
+
+    # Initialize a list to store equations
+    all_equations = []
+
+    # Regular expression pattern to extract variable names and coefficients
+    variable_coefficient_pattern = r'([A-Za-z_][A-Za-z_0-9]*) ~ ([A-Za-z_][A-Za-z_0-9]*)(?: \+ ([A-Za-z_][A-Za-z_0-9]*))*'
+    coefficient_pattern = r'([A-Za-z_][A-Za-z_0-9]*) =~ ([A-Za-z_][A-Za-z_0-9]*)(?: \+ ([A-Za-z_][A-Za-z_0-9]*))*'
+
+    current_section = None  # Track the current section
+
+    # Loop through each line in the model specification
+    for line in model_lines:
+        # Check if the line specifies a section header
+        if "###" in line:
+            current_section = line.strip("###").strip()  # Extract the section header
+            continue
+
+        # Check if the line specifies a coefficient
+        coefficient_match = re.match(coefficient_pattern, line.strip())
+        if coefficient_match:
+            dependent_variable = coefficient_match.group(1)
+            independent_variables = coefficient_match.group(2).split(' + ')
+            coefficients[dependent_variable] = independent_variables
+
+        # Check if the line specifies a relation
+        relation_match = re.match(variable_coefficient_pattern, line.strip())
+        if relation_match:
+            dependent_variable = relation_match.group(1)
+            independent_variables = relation_match.group(2).split(' + ')
+            # Create the regression equation with coefficients
+            equation = f"{dependent_variable} = "
+            for i, independent_variable in enumerate(independent_variables):
+                coefficient = coefficients.get(dependent_variable, [])[i]
+                equation += f"{coefficient} * {independent_variable} + "
+            equation = equation[:-2]  # Remove the trailing ' + '
+            # Append the equation to the list
+            all_equations.append(equation)
+
+    # Combine all equations into a single text string
+    equations_text = "\n".join(all_equations)
+
+    return equations_text

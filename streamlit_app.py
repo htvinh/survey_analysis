@@ -4,6 +4,8 @@ import survey_analysis_sem as sem
 from survey_quality_analysis import *
 from survey_common import *
 
+import re
+
 from PIL import Image
 # Increase the maximum allowed image size
 Image.MAX_IMAGE_PIXELS = None  # This removes the limit entirely
@@ -60,7 +62,6 @@ workflow_table = """
 st.markdown(workflow_table)
 
 st.write('\n\n-----------\n\n\n\n')
-
 
 def display_model_spec(model_spec):
     
@@ -207,14 +208,20 @@ if model_file_path is not None and data_file_path is not None:
 
         st.write('\n\n-----------\n\n\n\n')
         st.header("Step 5:    Regression Analsyis")
+        st.text('\n\nRegression analysis explores relationships between independent and dependent variables to')
+        st.text('understand how changes in the former affect the latter. It estimates coefficients to quantify')
+        st.text('these relationships but struggles with different variable units and scales, making comparisons challenging.')
 
 
         # Create model spec
         model_spec, model_spec_dict = reg.create_model_spec(independent_dict, dependent_dict, relation_dict, varcovar_dict)
 
+        model_spec_in_regression_format = model_spec.replace('=~', '=')
+        # print(model_spec_in_regression_format)
+
         # To create Model Spec Graph
         st.subheader('Model Specification')
-        display_model_spec(model_spec)
+        display_model_spec(model_spec_in_regression_format)
         graph_name = 'model_spec_graph'
         graph_path_full = reg.create_model_spec_graph_full(model_spec, independent_dict, dependent_dict, graph_name)
         st.image(graph_path_full) #, caption='Model Specification Graph')
@@ -250,6 +257,10 @@ if model_file_path is not None and data_file_path is not None:
 
         st.write('\n\n-----------\n\n\n\n')
         st.header("Step 6:    Standardized Regression Analsyis")
+        st.text("\n\nStandardized regression scales variables for easier comparison. It's ideal for assessing")
+        st.text('relative impacts of variables, particularly when they have varying units or scales, and ')
+        st.text('simplifies interpretation by using standard deviations.')
+
 
         # TO Make Standardized Regression Analysis
         regression_results = reg.conduct_regression_analysis_standardized(data_normalized, model_spec_dict)
@@ -305,6 +316,9 @@ if model_file_path is not None and data_file_path is not None:
 
         ### Check if SEM Analysis is required
         st.header("Step 8:    SEM Analsyis")
+        st.text("\n\nSEM is a powerful statistical method used for modeling complex relationships among")
+        st.text('multiple variables. It combines factor analysis and regression to examine both direct ')
+        st.text('and indirect effects of variables within a theoretical framework.')
 
         # Create model spec
         sem_model_spec, sem_model_spec_dict = sem.create_model_spec(independent_dict, mediator_dict, dependent_dict, relation_dict, varcovar_dict)

@@ -837,33 +837,33 @@ def interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_di
 
     # Identify central constructs
     # Initialize the dictionary
-    mediator_dict = {}
+    related_dict = {}
 
     # Iterate through the dependent_dict
     for var in sem_relation_dict:
         dependent_variable_name = var.get('Variable')
-        mediator_variables_str = var.get('Related_Variables')
-        mediator_variables_df = [item.strip() for item in mediator_variables_str.split('+')]
+        related_variables_str = var.get('Related_Variables')
+        related_variables_df = [item.strip() for item in related_variables_str.split('+')]
         
         # Create a nested dictionary with the dependent variable name and mediator variables
-        mediator_dict[dependent_variable_name] = {
+        related_dict[dependent_variable_name] = {
             'Name': dependent_variable_name,
-            'mediator_Variables': mediator_variables_df
+            'Related_Variables': related_variables_df
         }   
-    # print(mediator_dict)
+    print(related_dict)
 
     interpretations = []
     interpretation = ATTENTION_SEMOPY_INTERPRETATION
 
-    for key, value in mediator_dict.items():
+    for key, value in related_dict.items():
         dependent_variable_name = value['Name']
-        mediator_variables_df = value['mediator_Variables']
-        # print(dependent_variable_name, mediator_variables_df)
+        related_variables_df = value['Related_Variables']
+        # print(dependent_variable_name, related_variables_df)
         
         # Interpret Role of the construct
         interpretation += f"### **{dependent_variable_name}**:\n"
         interpretation += f"\n**Role in the Model**:\n"
-        interpretation += f"- `{dependent_variable_name}` plays a central role, being influenced by `{', '.join(mediator_variables_df)}`. "
+        interpretation += f"- `{dependent_variable_name}` plays a central role, being influenced by `{', '.join(related_variables_df)}`. "
         interpretation += "Its centrality suggests that it's crucial for understanding the overall dynamics of the model.\n"
         # print(interpretation)
 
@@ -872,45 +872,46 @@ def interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_di
 
         # Filter rows where the construct is the rval
         # print(sem_inspect)
-        mediator_rows = sem_inspect[sem_inspect['rval'] == dependent_variable_name]
-        mediator_rows = mediator_rows.reset_index(drop=True)
+        related_rows = sem_inspect[sem_inspect['rval'] == dependent_variable_name]
+        related_rows = related_rows.reset_index(drop=True)
 
-        for index, mediator_var in enumerate(mediator_variables_df):
+        for index, related_var in enumerate(related_variables_df):
             row_index = index 
-            mediator_var_significant = mediator_rows.at[row_index, 'Significance']
-            mediator_var_relation = mediator_rows.at[row_index, 'Relation']
-            mediator_var_estimate = mediator_rows.at[row_index, 'Estimate']
-            mediator_var_p_value = mediator_rows.at[row_index, 'p-value']
-            # print(row_index, mediator_var_estimate)
+            related_var_significant = related_rows.at[row_index, 'Significance']
+            related_var_relation = related_rows.at[row_index, 'Relation']
+            related_var_estimate = related_rows.at[row_index, 'Estimate']
+            related_var_p_value = related_rows.at[row_index, 'p-value']
+            # print(row_index, related_var_estimate)
 
             if row_index == 0: # Set as reference
-                interpretation += f"\n  - `{mediator_var}`, as the first construct, its Estimate is set to 1 (Est = 1), establishing a baseline for comparison."
-            elif mediator_var_significant == 'Significant':
-                interpretation += f"\n  - `{mediator_var}` has a statistically `{mediator_var_significant}` `{mediator_var_relation}` influence to `{dependent_variable_name}`, (Estimate: {mediator_var_estimate:.3f}, p-value: {mediator_var_p_value:.3f})."
+                interpretation += f"\n  - `{related_var}`, as the first construct, its Estimate is set to 1 (Est = 1), establishing a baseline for comparison."
+            elif related_var_significant == 'Significant':
+                interpretation += f"\n  - `{related_var}` has a statistically `{related_var_significant}` `{related_var_relation}` influence to `{dependent_variable_name}`, (Estimate: {related_var_estimate:.3f}, p-value: {related_var_p_value:.3f})."
             else: 
-                interpretation += f"\n  - `{mediator_var}` has a `{mediator_var_relation}` influence to `{dependent_variable_name}`, but `NOT` statistically significant (Estimate: {mediator_var_estimate:.3f}, p-value: {mediator_var_p_value:.3f})."
+                interpretation += f"\n  - `{related_var}` has a `{related_var_relation}` influence to `{dependent_variable_name}`, but `NOT` statistically significant (Estimate: {related_var_estimate:.3f}, p-value: {related_var_p_value:.3f})."
 
         # Interpret Relations on the construct
         interpretation += '\n'
         interpretation += "\n**Relations**:\n"
 
         # Filter rows where the construct is the lval
-        mediator_rows = sem_inspect[sem_inspect['lval'] == dependent_variable_name]
-        mediator_rows = mediator_rows.reset_index(drop=True)
-        # print(mediator_rows)
-        for index, mediator_var in enumerate(mediator_variables_df):
-            row_index = index 
-            mediator_var_significant = mediator_rows.at[row_index, 'Significance']
-            mediator_var_relation = mediator_rows.at[row_index, 'Relation']
-            mediator_var_estimate = mediator_rows.at[row_index, 'Estimate']
-            mediator_var_p_value = mediator_rows.at[row_index, 'p-value']
+        related_rows = sem_inspect[sem_inspect['lval'] == dependent_variable_name]
+        related_rows = related_rows.reset_index(drop=True)
+        print(related_rows)
+        if len(related_variables_df) > 0:
+            for index, related_var in enumerate(related_variables_df):
+                row_index = index 
+                related_var_significant = related_rows.at[row_index, 'Significance']
+                related_var_relation = related_rows.at[row_index, 'Relation']
+                related_var_estimate = related_rows.at[row_index, 'Estimate']
+                related_var_p_value = related_rows.at[row_index, 'p-value']
 
-            # if construc_significant == 'Significant':
-            interpretation += f"  - `{dependent_variable_name}` has a statistically `{mediator_var_significant}` {mediator_var_relation.lower()} relationship with `{mediator_var}` (Estimate: {mediator_var_estimate:.3f}), suggesting "
-            if mediator_var_relation == 'Positive':
-                interpretation += f"an increase in (1 unit) `{dependent_variable_name}` is associated with an increase (`{mediator_var_estimate:.3f}`) in `{mediator_var}`.\n"
-            else:
-                interpretation += f"an increase (1 unit) in `{dependent_variable_name}` is associated with a decrease (`{mediator_var_estimate:.3f}`) in `{mediator_var}`.\n"
+                # if construc_significant == 'Significant':
+                interpretation += f"  - `{dependent_variable_name}` has a statistically `{related_var_significant}` {related_var_relation.lower()} relationship with `{related_var}` (Estimate: {related_var_estimate:.3f}), suggesting "
+                if related_var_relation == 'Positive':
+                    interpretation += f"an increase in (1 unit) `{dependent_variable_name}` is associated with an increase (`{related_var_estimate:.3f}`) in `{related_var}`.\n"
+                else:
+                    interpretation += f"an increase (1 unit) in `{dependent_variable_name}` is associated with a decrease (`{related_var_estimate:.3f}`) in `{related_var}`.\n"
 
 
     interpretations.append(interpretation)
