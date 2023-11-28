@@ -130,7 +130,7 @@ def interpret_efa_results(efa_results, threshold_high, threshold_moderate):
     
     # Interpretation
     interpretation = []
-    interpretation.append(f"The analysis identified {num_factors} latent main factors influencing the responses.")
+    interpretation.append(f"The analysis identified {num_factors} mediator main factors influencing the responses.")
     
     if avg_loading > threshold_high:
         interpretation.append("On average, the questions exhibit a strong association with at least one of the extracted factors. This indicates the identified factors capture significant variations in the data.")
@@ -195,7 +195,7 @@ def compute_correlation(data_normalized, observable_dict):
     figsize=(10, 8)
     plt.figure(figsize=figsize)
     sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", vmin=-1, vmax=1, 
-                linewidths=.5, fmt=".2f") # , mask=~mask)
+                linewidths=.5, fmt=".1f", annot_kws={"fontsize": 8}) # , mask=~mask)
     # plt.title(f'Simplified Correlation Matrix with correlation > {threshold}', fontsize=16)
     plt.title(f'Correlation Matrix', fontsize=16)
 

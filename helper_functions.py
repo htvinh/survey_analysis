@@ -93,7 +93,7 @@ def normalize_variable_names(variable_dict):
 def normalize_dataframe(df):# Define a function to normalize a single string
     # List of columns to keep number_questions	column_index_from number_options	column_index	used_as_moderator
     columns_to_keep = ['Variable', 'number_questions', 'column_index_from', 'Related_Variables', 
-                       'number_options', 'column_index', 'used_as_moderator',
+                       'number_options', 'column_index', 'used_as_moderator', 'Relation_Type',
                        'parameter',	'high_threshold','moderate_threshold', 'Variable_1', 'Variable_2']  # 'Column4' is not in the DataFrame
 
     # Filter the DataFrame to keep only the columns present in the list

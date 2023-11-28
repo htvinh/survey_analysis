@@ -1,7 +1,5 @@
 import pandas as pd
 
-# from sklearn.decomposition import FactorAnalysis
-# from sklearn.preprocessing import StandardScaler
 
 import numpy as np
 import os
@@ -30,12 +28,12 @@ def read_model(filepath):
     print('\n======= Independent Variables')
     print(independent_dict)
 
-    # Read Latent Variables
-    latent_df = pd.read_excel(filepath, sheet_name='Latent_Variables', header=0)
-    latent_df = normalize_dataframe(latent_df)
-    latent_dict = latent_df.to_dict(orient='records')
-    print('\n======= Latent Variables')
-    print(latent_dict)
+    # Read mediator Variables
+    mediator_df = pd.read_excel(filepath, sheet_name='Mediator_Variables', header=0)
+    mediator_df = normalize_dataframe(mediator_df)
+    mediator_dict = mediator_df.to_dict(orient='records')
+    print('\n======= Mediator Variables')
+    print(mediator_dict)
 
     # Read Dependent Variables
     dependent_df = pd.read_excel(filepath, sheet_name='Dependent_Variables')
@@ -45,18 +43,11 @@ def read_model(filepath):
     print(dependent_dict)
 
     # Read Regression Relations
-    reg_relation_df = pd.read_excel(filepath, sheet_name='Regression_Relations')
-    reg_relation_df = normalize_dataframe(reg_relation_df)
-    reg_relation_dict = reg_relation_df.to_dict(orient='records')
-    print('\n======= Regression Relations')
-    print(reg_relation_dict)
-
-    # Read SEM Relations
-    sem_relation_df = pd.read_excel(filepath, sheet_name='Sem_Structure')
-    sem_relation_df = normalize_dataframe(sem_relation_df)
-    sem_relation_dict = sem_relation_df.to_dict(orient='records')
-    print('\n======= SEM Structure')
-    print(sem_relation_dict)
+    relation_df = pd.read_excel(filepath, sheet_name='Relations')
+    relation_df = normalize_dataframe(relation_df)
+    relation_dict = relation_df.to_dict(orient='records')
+    print('\n======= Relations')
+    print(relation_dict)
 
     # Read variance/covariance relations
     # varcovar_df = pd.read_excel(filepath, sheet_name='VarCovar_Relations')
@@ -71,7 +62,7 @@ def read_model(filepath):
     print('\n======= Parameters')
     print(parameters_dict)
 
-    return demographic_dict, independent_dict, latent_dict, dependent_dict, reg_relation_dict, sem_relation_dict, varcovar_dict, parameters_dict
+    return demographic_dict, independent_dict, mediator_dict, dependent_dict, relation_dict, varcovar_dict, parameters_dict
 
 
 def pre_process_data(data, demographic_dict, independent_dict, dependent_dict):
@@ -81,7 +72,7 @@ def pre_process_data(data, demographic_dict, independent_dict, dependent_dict):
     # Rename Demographic columns to reduce the columns name
     data_normalized, demographic_cols_names = rename_columns_by_index(data, demographic_dict)
 
-    # Rename Observation, Latent, Dependent columns to reduce the columns name
+    # Rename Observation, mediator, Dependent columns to reduce the columns name
     data_normalized, independent_cols_names = rename_variable_columns(data_normalized, independent_dict)
     data_normalized, dependent_cols_names = rename_variable_columns(data_normalized, dependent_dict)
 

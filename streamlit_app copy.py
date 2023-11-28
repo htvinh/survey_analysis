@@ -131,8 +131,8 @@ if model_file_path is not None and data_file_path is not None:
             st.write(sheet_df)
 
         # Convert Model Description into a dictionary
-        demographic_dict, independent_dict, latent_dict, dependent_dict, \
-            reg_relation_dict, sem_relation_dict, \
+        demographic_dict, independent_dict, mediator_dict, dependent_dict, \
+            relation_dict, sem_relation_dict, \
             varcovar_dict, parameters_dict = read_model(model_file_path)
 
 
@@ -210,7 +210,7 @@ if model_file_path is not None and data_file_path is not None:
 
 
         # Create model spec
-        model_spec, model_spec_dict = reg.create_model_spec(independent_dict, dependent_dict, reg_relation_dict, varcovar_dict)
+        model_spec, model_spec_dict = reg.create_model_spec(independent_dict, dependent_dict, relation_dict, varcovar_dict)
 
         # To create Model Spec Graph
         st.subheader('Model Specification')
@@ -309,21 +309,21 @@ if model_file_path is not None and data_file_path is not None:
             st.header("Step 8:    SEM Analsyis")
 
             # Create model spec
-            sem_model_spec, sem_model_spec_dict = sem.create_model_spec(independent_dict, latent_dict, dependent_dict, sem_relation_dict, varcovar_dict)
+            sem_model_spec, sem_model_spec_dict = sem.create_model_spec(independent_dict, mediator_dict, dependent_dict, sem_relation_dict, varcovar_dict)
 
             # To create Model Spec Graph
             st.title('Model Specification')
             display_model_spec(sem_model_spec)
 
             graph_name = 'model_spec_graph'
-            graph_path_full = sem.create_model_spec_graph_full(sem_model_spec, independent_dict, latent_dict, dependent_dict)
+            graph_path_full = sem.create_model_spec_graph_full(sem_model_spec, independent_dict, mediator_dict, dependent_dict)
             st.image(graph_path_full) #, caption='Model Specification Graph')
-            graph_path_short = sem.create_model_spec_graph_short(sem_model_spec, independent_dict, latent_dict, dependent_dict)
+            graph_path_short = sem.create_model_spec_graph_short(sem_model_spec, independent_dict, mediator_dict, dependent_dict)
             st.image(graph_path_short) #, caption='Model Specification Graph')
 
             sem_result, sem_stats, sem_inspect, sem_inspect_enhanced, sem_inspect_filtered, \
                 graph_filtered_results, graph_fulll_results \
-                = sem.conduct_sem_analysis(data_normalized, sem_model_spec, independent_dict, latent_dict, dependent_dict)
+                = sem.conduct_sem_analysis(data_normalized, sem_model_spec, independent_dict, mediator_dict, dependent_dict)
 
             st.subheader('\nSEM Modeling Statistics')
             st.write(sem_stats)

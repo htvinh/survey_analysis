@@ -53,7 +53,7 @@ workflow_table = """
 | 5    | Regression Analysis |
 | 6    | Standardized Regression Analysis |
 | 7    | Regression Subgroup Analysis with Moderators |
-| 8    | Structural Equation Modeling (SEM) Analysis if specified in Model file (SEM Structure Sheet) |
+| 8    | Structural Equation Modeling (SEM) Analysis |
 """
 
 # Display the workflow table using Markdown
@@ -123,7 +123,7 @@ if model_file_path is not None and data_file_path is not None:
 
         # Read the model descritption
         model_description =pd.ExcelFile(model_file_path)
-        # Display sheet by shee
+        # Display sheet by sheet
         st.subheader('=========        Model Description      =========')
         sheet_names = model_description.sheet_names
         for sheet_name in sheet_names:
@@ -132,8 +132,7 @@ if model_file_path is not None and data_file_path is not None:
             st.write(sheet_df)
 
         # Convert Model Description into a dictionary
-        demographic_dict, independent_dict, latent_dict, dependent_dict, \
-            reg_relation_dict, sem_relation_dict, \
+        demographic_dict, independent_dict, mediator_dict, dependent_dict, relation_dict, \
             varcovar_dict, parameters_dict = read_model(model_file_path)
 
 
@@ -195,7 +194,7 @@ if model_file_path is not None and data_file_path is not None:
         st.write(correlation_matrix)
 
         st.subheader('\nCorrelation Heatmap')
-        st.image(f'{output_path}correlation_heatmap.png')
+        st.image(f'{output_path}correlation_heatmap.png', use_column_width=True)
 
         # Interpretation et recommendation 
         threshold_strong = 0.7  # Threshold for strong correlation
@@ -211,7 +210,7 @@ if model_file_path is not None and data_file_path is not None:
 
 
         # Create model spec
-        model_spec, model_spec_dict = reg.create_model_spec(independent_dict, dependent_dict, reg_relation_dict, varcovar_dict)
+        model_spec, model_spec_dict = reg.create_model_spec(independent_dict, dependent_dict, relation_dict, varcovar_dict)
 
         # To create Model Spec Graph
         st.subheader('Model Specification')
@@ -305,46 +304,44 @@ if model_file_path is not None and data_file_path is not None:
         #############################
 
         ### Check if SEM Analysis is required
-        if len(sem_relation_dict) > 0:
+        st.header("Step 8:    SEM Analsyis")
 
-            st.header("Step 8:    SEM Analsyis")
+        # Create model spec
+        sem_model_spec, sem_model_spec_dict = sem.create_model_spec(independent_dict, mediator_dict, dependent_dict, relation_dict, varcovar_dict)
 
-            # Create model spec
-            sem_model_spec, sem_model_spec_dict = sem.create_model_spec(independent_dict, latent_dict, dependent_dict, sem_relation_dict, varcovar_dict)
+        # To create Model Spec Graph
+        st.title('Model Specification')
+        display_model_spec(sem_model_spec)
 
-            # To create Model Spec Graph
-            st.title('Model Specification')
-            display_model_spec(sem_model_spec)
+        graph_name = 'model_spec_graph'
+        graph_path_full = sem.create_model_spec_graph_full(sem_model_spec, independent_dict, mediator_dict, dependent_dict)
+        st.image(graph_path_full) #, caption='Model Specification Graph')
+        graph_path_short = sem.create_model_spec_graph_short(sem_model_spec, independent_dict, mediator_dict, dependent_dict)
+        st.image(graph_path_short) #, caption='Model Specification Graph')
 
-            graph_name = 'model_spec_graph'
-            graph_path_full = sem.create_model_spec_graph_full(sem_model_spec, independent_dict, latent_dict, dependent_dict)
-            st.image(graph_path_full) #, caption='Model Specification Graph')
-            graph_path_short = sem.create_model_spec_graph_short(sem_model_spec, independent_dict, latent_dict, dependent_dict)
-            st.image(graph_path_short) #, caption='Model Specification Graph')
+        sem_result, sem_stats, sem_inspect, sem_inspect_enhanced, sem_inspect_filtered, \
+            graph_filtered_results, graph_fulll_results \
+            = sem.conduct_sem_analysis(data_normalized, sem_model_spec, independent_dict, mediator_dict, dependent_dict)
 
-            sem_result, sem_stats, sem_inspect, sem_inspect_enhanced, sem_inspect_filtered, \
-                graph_filtered_results, graph_fulll_results \
-                = sem.conduct_sem_analysis(data_normalized, sem_model_spec, independent_dict, latent_dict, dependent_dict)
+        st.subheader('\nSEM Modeling Statistics')
+        st.write(sem_stats)
+        stats_table, overall_msg = sem.interpret_sem_stats(sem_stats, parameters_dict)
+        st.write(stats_table)
+        st.write(overall_msg)
 
-            st.subheader('\nSEM Modeling Statistics')
-            st.write(sem_stats)
-            stats_table, overall_msg = sem.interpret_sem_stats(sem_stats, parameters_dict)
-            st.write(stats_table)
-            st.write(overall_msg)
+        st.subheader('\nSEM Analysis Results')
+        st.write(sem_inspect_enhanced)
 
-            st.subheader('\nSEM Analysis Results')
-            st.write(sem_inspect_enhanced)
+        interepretation_sem_inspect = sem.interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, relation_dict, parameters_dict)
+        st.subheader('\nInterpret SEM Analysis Results')
+        for interpretation in interepretation_sem_inspect:
+            st.markdown(interpretation)
+            st.write("---")  # Adds a horizontal line for separation
 
-            interepretation_sem_inspect = sem.interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_dict, parameters_dict)
-            st.subheader('\nInterpret SEM Analysis Results')
-            for interpretation in interepretation_sem_inspect:
-                st.markdown(interpretation)
-                st.write("---")  # Adds a horizontal line for separation
+        st.subheader('SEM Results Graph')
+        st.image(graph_fulll_results)
 
-            st.subheader('SEM Results Graph')
-            st.image(graph_fulll_results)
-
-            st.image(graph_filtered_results)
+        st.image(graph_filtered_results)
 
         
         st.write('\n\n-----------\n\n\n\n')

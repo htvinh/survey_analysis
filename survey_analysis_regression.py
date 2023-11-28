@@ -27,9 +27,8 @@ def create_model_spec(independent_dict, dependent_dict, relation_dict, varcovar_
     model_spec += "\n".join([f"{d['Variable']} =~ " + " + ".join([f"{d['Variable']}_Q{i+1}" for i in range(d['number_questions'])]) for d in dependent_dict])
     model_spec += "\n\n### Relations\n"
 
-    # Include only relations where both variables are defined
-    # model_spec += "\n".join([f"{r['Variable']} ~ {r['Related_Variables']}" for r in relation_dict if r['Variable'] in defined_vars and all(rv in defined_vars for rv in r['Related_Variables'].split())])
-    model_spec += "\n".join([f"{r['Variable']} ~ {r['Related_Variables']}" for r in relation_dict])
+    # Relations
+    model_spec += "\n".join([f"{r['Variable']} ~ {r['Related_Variables']}" for r in relation_dict if r['Relation_Type'] == 'direct' or r['Relation_Type'] == 'both'])
 
     print('\n\n ========= Model Spec ===========')
     print(model_spec)

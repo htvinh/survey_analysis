@@ -21,19 +21,20 @@ ATTENTION_SEMOPY_INTERPRETATION = f"""\n
 
 
 # Create SEM Model Spec Full 
-def create_model_spec(independent_dict, latent_dict, dependent_dict, sem_relation_dict, varcovar_dict):
+def create_model_spec(independent_dict, mediator_dict, dependent_dict, relation_dict, varcovar_dict):
     # Build the model spec
     model_spec = "### Independent Variables\n"
     model_spec += "\n".join([f"{d['Variable']} =~ " + " + ".join([f"{d['Variable']}_Q{i+1}" for i in range(d['number_questions'])]) for d in independent_dict])
    
-    model_spec += "\n\n### Latent Variables\n"
-    model_spec += "\n".join([f"{r['Variable']} =~ {r['Related_Variables']}" for r in latent_dict])
+    model_spec += "\n\n### Mediator Variables\n"
+    model_spec += "\n".join([f"{r['Variable']} =~ {r['Related_Variables']}" for r in mediator_dict])
 
     model_spec += "\n\n### Dependent Variables\n"
     model_spec += "\n".join([f"{d['Variable']} =~ " + " + ".join([f"{d['Variable']}_Q{i+1}" for i in range(d['number_questions'])]) for d in dependent_dict])
     
     model_spec += "\n\n### Relations\n"
-    model_spec += "\n".join([f"{r['Variable']} ~ {r['Related_Variables']}" for r in sem_relation_dict])
+    model_spec += "\n".join([f"{r['Variable']} ~ {r['Related_Variables']}" for r in relation_dict if r['Relation_Type'] == 'mediation' or r['Relation_Type'] == 'both'])
+
 
     print('\n\n ========= Model Spec ===========')
     print(model_spec)
@@ -99,7 +100,7 @@ def extract_indicators_from_sem_spec(sem_spec):
     return indicators
 
 
-def create_model_spec_graph_full_1(model_spec, independent_dict, latent_dict, dependent_dict, graph_name):
+def create_model_spec_graph_full_1(model_spec, independent_dict, mediator_dict, dependent_dict, graph_name):
     # Initialize the Graphviz Digraph
     g = graphviz.Digraph('Model Spec', format='png', engine='dot')
     g.attr(rankdir='RL', overlap='scale', splines='true', fontsize='12')  
@@ -107,7 +108,7 @@ def create_model_spec_graph_full_1(model_spec, independent_dict, latent_dict, de
     # Extract names from dictionaries
     dependent_variable_names = [item['Variable'] for item in dependent_dict]
     independent_variable_names = [item['Variable'] for item in independent_dict]
-    latent_variable_names = [item['Variable'] for item in latent_dict]
+    mediator_variable_names = [item['Variable'] for item in mediator_dict]
 
     indicator_variable_names = extract_indicators_from_sem_spec(model_spec)
 
@@ -129,7 +130,7 @@ def create_model_spec_graph_full_1(model_spec, independent_dict, latent_dict, de
 
     with g.subgraph() as s:
         # s.attr(rank='same')
-        for var_name in latent_variable_names:
+        for var_name in mediator_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='green', style='filled')
 
     # Create subgraphs for dependent variables
@@ -169,7 +170,7 @@ def create_model_spec_graph_full_1(model_spec, independent_dict, latent_dict, de
 
 
 
-def create_model_spec_graph_short_1(model_spec, independent_dict, latent_dict, dependent_dict, graph_name):
+def create_model_spec_graph_short_1(model_spec, independent_dict, mediator_dict, dependent_dict, graph_name):
     # Initialize the Graphviz Digraph
     g = graphviz.Digraph('Model Spec', format='png', engine='dot')
     g.attr(rankdir='LR', overlap='scale', splines='true', fontsize='12')  
@@ -177,7 +178,7 @@ def create_model_spec_graph_short_1(model_spec, independent_dict, latent_dict, d
     # Extract names from dictionaries
     dependent_variable_names = [item['Variable'] for item in dependent_dict]
     independent_variable_names = [item['Variable'] for item in independent_dict]
-    latent_variable_names = [item['Variable'] for item in latent_dict]
+    mediator_variable_names = [item['Variable'] for item in mediator_dict]
 
     indicator_variable_names = extract_indicators_from_sem_spec(model_spec)
 
@@ -189,7 +190,7 @@ def create_model_spec_graph_short_1(model_spec, independent_dict, latent_dict, d
 
     with g.subgraph() as s:
         # s.attr(rank='same')
-        for var_name in latent_variable_names:
+        for var_name in mediator_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='green', style='filled')
 
 
@@ -229,7 +230,7 @@ def create_model_spec_graph_short_1(model_spec, independent_dict, latent_dict, d
 
 
 
-def conduct_sem_analysis(data, sem_model_spec, observable_dict, latent_dict, dependent_dict):
+def conduct_sem_analysis(data, sem_model_spec, observable_dict, mediator_dict, dependent_dict):
     #  Conduct SEM Analysis
 
     # Instantiate and fit the model
@@ -250,11 +251,11 @@ def conduct_sem_analysis(data, sem_model_spec, observable_dict, latent_dict, dep
     print(sem_inspect)
 
     # Post process SEM results
-    sem_inspect_enhanced, sem_inspect_filtered, graph_filtered_results, graph_fulll_results = post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict)
+    sem_inspect_enhanced, sem_inspect_filtered, graph_filtered_results, graph_fulll_results = post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, mediator_dict, dependent_dict)
 
     return sem_result, sem_stats, sem_inspect, sem_inspect_enhanced, sem_inspect_filtered, graph_filtered_results, graph_fulll_results
 
-def post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict):
+def post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, mediator_dict, dependent_dict):
 
     # Inhance the inspect table by inserting 2 new columns: significance and direction
     sem_inspect_enhanced = enhance_inspection(sem_inspect)
@@ -268,16 +269,16 @@ def post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, laten
     sem_inspect_filtered_results = filter_inspect_table_from_spec(sem_inspect, sem_model_spec)
     # print(sem_inspect_filtered_results)
 
-    graph_results_short = create_graph_for_sem_results_short(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict)
+    graph_results_short = create_graph_for_sem_results_short(sem_model_spec, sem_inspect, observable_dict, mediator_dict, dependent_dict)
 
-    graph_results_fulll = create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict)
+    graph_results_fulll = create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_dict, mediator_dict, dependent_dict)
 
     return sem_inspect_enhanced, sem_inspect_filtered_results, graph_results_short, graph_results_fulll
 
     
 
 def filter_inspect_table_from_spec(sem_inspect, sem_model_spec):
-    # Extract independent (latent) and dependent variables from sem_model_spec
+    # Extract independent (mediator) and dependent variables from sem_model_spec
     lines = sem_model_spec.strip().split("\n")
     independent_factors = set([line.split('=~')[0].strip() for line in lines if '=~' in line])
     dependent_variables = set([line.split('~')[0].strip() for line in lines if '~' in line])
@@ -379,14 +380,14 @@ def create_label(row):
 
 
 
-def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict):
+def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_dict, mediator_dict, dependent_dict):
     # Initialize the Graphviz Digraph
     g = graphviz.Digraph('SEM', format='png', engine='dot')
     # g.attr(rankdir='LR', overlap='scale', splines='true', fontsize='12')
     g.attr(rankdir='RL', fontsize='12')
     
     # Extract names from dictionaries
-    latent_variable_names = [item['Variable'] for item in latent_dict]
+    mediator_variable_names = [item['Variable'] for item in mediator_dict]
     dependent_variable_names = [item['Variable'] for item in dependent_dict]
     observable_variable_names = [item['Variable'] for item in observable_dict]
 
@@ -409,7 +410,7 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
             s.node(var_name, shape='ellipse', fillcolor='#cae6df', style='filled')
     with g.subgraph() as s:
         s.attr() #rank='same')
-        for var_name in latent_variable_names:
+        for var_name in mediator_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='green', style='filled')
     with g.subgraph() as s:
         s.attr(rank='source')
@@ -479,14 +480,14 @@ def create_graph_for_sem_results_full(sem_model_spec, sem_inspect, observable_di
     return graph_path
 
 
-def create_model_spec_graph_full(sem_model_spec, observable_dict, latent_dict, dependent_dict):
+def create_model_spec_graph_full(sem_model_spec, observable_dict, mediator_dict, dependent_dict):
     # Initialize the Graphviz Digraph
     g = graphviz.Digraph('SEM', format='png', engine='dot')
     # g.attr(rankdir='LR', overlap='scale', splines='true', fontsize='12')
     g.attr(rankdir='RL', fontsize='12')
     
     # Extract names from dictionaries
-    latent_variable_names = [item['Variable'] for item in latent_dict]
+    mediator_variable_names = [item['Variable'] for item in mediator_dict]
     dependent_variable_names = [item['Variable'] for item in dependent_dict]
     observable_variable_names = [item['Variable'] for item in observable_dict]
 
@@ -509,7 +510,7 @@ def create_model_spec_graph_full(sem_model_spec, observable_dict, latent_dict, d
             s.node(var_name, shape='ellipse', fillcolor='#cae6df', style='filled')
     with g.subgraph() as s:
         s.attr() #rank='same')
-        for var_name in latent_variable_names:
+        for var_name in mediator_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='green', style='filled')
     with g.subgraph() as s:
         s.attr(rank='source')
@@ -573,13 +574,13 @@ def extract_p_value_from_label(label):
     
 
 
-def create_graph_for_sem_results_short(sem_model_spec, sem_inspect, observable_dict, latent_dict, dependent_dict):
+def create_graph_for_sem_results_short(sem_model_spec, sem_inspect, observable_dict, mediator_dict, dependent_dict):
     # Initialize the Graphviz Digraph
     g = graphviz.Digraph('SEM', format='png', engine='dot')
     g.attr(rankdir='LR', fontsize='12')
     
     # Extract names from dictionaries
-    latent_variable_names = [item['Variable'] for item in latent_dict]
+    mediator_variable_names = [item['Variable'] for item in mediator_dict]
     dependent_variable_names = [item['Variable'] for item in dependent_dict]
     observable_variable_names = [item['Variable'] for item in observable_dict]
 
@@ -593,7 +594,7 @@ def create_graph_for_sem_results_short(sem_model_spec, sem_inspect, observable_d
             
     with g.subgraph() as s:
         s.attr() #rank='same')
-        for var_name in latent_variable_names:
+        for var_name in mediator_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='green', style='filled') ##f5e6ca
     with g.subgraph() as s:
         s.attr() # rank='source')
@@ -664,13 +665,13 @@ def create_graph_for_sem_results_short(sem_model_spec, sem_inspect, observable_d
 
 
 
-def create_model_spec_graph_short(sem_model_spec, observable_dict, latent_dict, dependent_dict):
+def create_model_spec_graph_short(sem_model_spec, observable_dict, mediator_dict, dependent_dict):
     # Initialize the Graphviz Digraph
     g = graphviz.Digraph('SEM', format='png', engine='dot')
     g.attr(rankdir='LR', fontsize='12')
     
     # Extract names from dictionaries
-    latent_variable_names = [item['Variable'] for item in latent_dict]
+    mediator_variable_names = [item['Variable'] for item in mediator_dict]
     dependent_variable_names = [item['Variable'] for item in dependent_dict]
     observable_variable_names = [item['Variable'] for item in observable_dict]
 
@@ -684,7 +685,7 @@ def create_model_spec_graph_short(sem_model_spec, observable_dict, latent_dict, 
             
     with g.subgraph() as s:
         s.attr() #rank='same')
-        for var_name in latent_variable_names:
+        for var_name in mediator_variable_names:
             s.node(var_name, shape='ellipse', fillcolor='green', style='filled') ##f5e6ca
     with g.subgraph() as s:
         s.attr() # rank='source')
@@ -836,33 +837,33 @@ def interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_di
 
     # Identify central constructs
     # Initialize the dictionary
-    latent_dict = {}
+    mediator_dict = {}
 
     # Iterate through the dependent_dict
     for var in sem_relation_dict:
         dependent_variable_name = var.get('Variable')
-        latent_variables_str = var.get('Related_Variables')
-        latent_variables_df = [item.strip() for item in latent_variables_str.split('+')]
+        mediator_variables_str = var.get('Related_Variables')
+        mediator_variables_df = [item.strip() for item in mediator_variables_str.split('+')]
         
-        # Create a nested dictionary with the dependent variable name and latent variables
-        latent_dict[dependent_variable_name] = {
+        # Create a nested dictionary with the dependent variable name and mediator variables
+        mediator_dict[dependent_variable_name] = {
             'Name': dependent_variable_name,
-            'Latent_Variables': latent_variables_df
+            'mediator_Variables': mediator_variables_df
         }   
-    # print(latent_dict)
+    # print(mediator_dict)
 
     interpretations = []
     interpretation = ATTENTION_SEMOPY_INTERPRETATION
 
-    for key, value in latent_dict.items():
+    for key, value in mediator_dict.items():
         dependent_variable_name = value['Name']
-        latent_variables_df = value['Latent_Variables']
-        # print(dependent_variable_name, latent_variables_df)
+        mediator_variables_df = value['mediator_Variables']
+        # print(dependent_variable_name, mediator_variables_df)
         
         # Interpret Role of the construct
         interpretation += f"### **{dependent_variable_name}**:\n"
         interpretation += f"\n**Role in the Model**:\n"
-        interpretation += f"- `{dependent_variable_name}` plays a central role, being influenced by `{', '.join(latent_variables_df)}`. "
+        interpretation += f"- `{dependent_variable_name}` plays a central role, being influenced by `{', '.join(mediator_variables_df)}`. "
         interpretation += "Its centrality suggests that it's crucial for understanding the overall dynamics of the model.\n"
         # print(interpretation)
 
@@ -871,45 +872,45 @@ def interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_di
 
         # Filter rows where the construct is the rval
         # print(sem_inspect)
-        latent_rows = sem_inspect[sem_inspect['rval'] == dependent_variable_name]
-        latent_rows = latent_rows.reset_index(drop=True)
+        mediator_rows = sem_inspect[sem_inspect['rval'] == dependent_variable_name]
+        mediator_rows = mediator_rows.reset_index(drop=True)
 
-        for index, latent_var in enumerate(latent_variables_df):
+        for index, mediator_var in enumerate(mediator_variables_df):
             row_index = index 
-            latent_var_significant = latent_rows.at[row_index, 'Significance']
-            latent_var_relation = latent_rows.at[row_index, 'Relation']
-            latent_var_estimate = latent_rows.at[row_index, 'Estimate']
-            latent_var_p_value = latent_rows.at[row_index, 'p-value']
-            # print(row_index, latent_var_estimate)
+            mediator_var_significant = mediator_rows.at[row_index, 'Significance']
+            mediator_var_relation = mediator_rows.at[row_index, 'Relation']
+            mediator_var_estimate = mediator_rows.at[row_index, 'Estimate']
+            mediator_var_p_value = mediator_rows.at[row_index, 'p-value']
+            # print(row_index, mediator_var_estimate)
 
             if row_index == 0: # Set as reference
-                interpretation += f"\n  - `{latent_var}`, as the first construct, its Estimate is set to 1 (Est = 1), establishing a baseline for comparison."
-            elif latent_var_significant == 'Significant':
-                interpretation += f"\n  - `{latent_var}` has a statistically `{latent_var_significant}` `{latent_var_relation}` influence to `{dependent_variable_name}`, (Estimate: {latent_var_estimate:.3f}, p-value: {latent_var_p_value:.3f})."
+                interpretation += f"\n  - `{mediator_var}`, as the first construct, its Estimate is set to 1 (Est = 1), establishing a baseline for comparison."
+            elif mediator_var_significant == 'Significant':
+                interpretation += f"\n  - `{mediator_var}` has a statistically `{mediator_var_significant}` `{mediator_var_relation}` influence to `{dependent_variable_name}`, (Estimate: {mediator_var_estimate:.3f}, p-value: {mediator_var_p_value:.3f})."
             else: 
-                interpretation += f"\n  - `{latent_var}` has a `{latent_var_relation}` influence to `{dependent_variable_name}`, but `NOT` statistically significant (Estimate: {latent_var_estimate:.3f}, p-value: {latent_var_p_value:.3f})."
+                interpretation += f"\n  - `{mediator_var}` has a `{mediator_var_relation}` influence to `{dependent_variable_name}`, but `NOT` statistically significant (Estimate: {mediator_var_estimate:.3f}, p-value: {mediator_var_p_value:.3f})."
 
         # Interpret Relations on the construct
         interpretation += '\n'
         interpretation += "\n**Relations**:\n"
 
         # Filter rows where the construct is the lval
-        latent_rows = sem_inspect[sem_inspect['lval'] == dependent_variable_name]
-        latent_rows = latent_rows.reset_index(drop=True)
-        # print(latent_rows)
-        for index, latent_var in enumerate(latent_variables_df):
+        mediator_rows = sem_inspect[sem_inspect['lval'] == dependent_variable_name]
+        mediator_rows = mediator_rows.reset_index(drop=True)
+        # print(mediator_rows)
+        for index, mediator_var in enumerate(mediator_variables_df):
             row_index = index 
-            latent_var_significant = latent_rows.at[row_index, 'Significance']
-            latent_var_relation = latent_rows.at[row_index, 'Relation']
-            latent_var_estimate = latent_rows.at[row_index, 'Estimate']
-            latent_var_p_value = latent_rows.at[row_index, 'p-value']
+            mediator_var_significant = mediator_rows.at[row_index, 'Significance']
+            mediator_var_relation = mediator_rows.at[row_index, 'Relation']
+            mediator_var_estimate = mediator_rows.at[row_index, 'Estimate']
+            mediator_var_p_value = mediator_rows.at[row_index, 'p-value']
 
             # if construc_significant == 'Significant':
-            interpretation += f"  - `{dependent_variable_name}` has a statistically `{latent_var_significant}` {latent_var_relation.lower()} relationship with `{latent_var}` (Estimate: {latent_var_estimate:.3f}), suggesting "
-            if latent_var_relation == 'Positive':
-                interpretation += f"an increase in (1 unit) `{dependent_variable_name}` is associated with an increase (`{latent_var_estimate:.3f}`) in `{latent_var}`.\n"
+            interpretation += f"  - `{dependent_variable_name}` has a statistically `{mediator_var_significant}` {mediator_var_relation.lower()} relationship with `{mediator_var}` (Estimate: {mediator_var_estimate:.3f}), suggesting "
+            if mediator_var_relation == 'Positive':
+                interpretation += f"an increase in (1 unit) `{dependent_variable_name}` is associated with an increase (`{mediator_var_estimate:.3f}`) in `{mediator_var}`.\n"
             else:
-                interpretation += f"an increase (1 unit) in `{dependent_variable_name}` is associated with a decrease (`{latent_var_estimate:.3f}`) in `{latent_var}`.\n"
+                interpretation += f"an increase (1 unit) in `{dependent_variable_name}` is associated with a decrease (`{mediator_var_estimate:.3f}`) in `{mediator_var}`.\n"
 
 
     interpretations.append(interpretation)
