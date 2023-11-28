@@ -27,14 +27,14 @@ st.write('\n\n-----------\n\n\n\n')
 st.subheader('2 Steps To Do:')
 st.write('Step 1:  Download Data Model Sample file')
 # To link to Data Model Sample Excel file
-data_model_sample_url = 'https://docs.google.com/spreadsheets/d/1BkA6d7FMxBEBwO84NTgXEaGMOat9YAP3/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
+data_model_sample_url = 'https://docs.google.com/spreadsheets/d/1CK0iJmdkVbpe8iOg7K12bisO2bvv7sFL/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
 st.write(f'- [Data Model Sample file download]({data_model_sample_url})')
 st.write('- Customize this Excel file according to your model and questionnaire structure.')
 
 st.write('Step 2: Upload the survey data (Excel file downloaded from Google Forms or others).')
 
 # To link to Survey Data Sample Excel file
-data_sample_url = 'https://docs.google.com/spreadsheets/d/1Bkp_SOZatsy1L69kiJSmHmBFvclIEagX/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
+data_sample_url = 'https://docs.google.com/spreadsheets/d/1CKDq-lUkTGQKOTD-CsyT90TFAKHpVUNn/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
 st.write(f'- [Survey Data Sample file to download]({data_sample_url})')
 
 st.write('\n\n-----------')
