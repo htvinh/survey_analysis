@@ -19,7 +19,7 @@ st.set_page_config(layout="wide")
 
 
 # Create a Streamlit app title and description
-st.title("SDA: Survey Data Analysis Easy")
+st.title("SDA: Survey Data Analysis")
 st.header("With Regression and SEM")
 st.write("This app helps you analyze survey data using Regression and SEM models.")
 st.write('\n\n-----------\n\n\n\n')
