@@ -33,7 +33,7 @@ def create_model_spec(independent_dict, mediator_dict, dependent_dict, relation_
     model_spec += "\n".join([f"{d['Variable']} =~ " + " + ".join([f"{d['Variable']}_Q{i+1}" for i in range(d['number_questions'])]) for d in dependent_dict])
     
     model_spec += "\n\n### Relations\n"
-    model_spec += "\n".join([f"{r['Variable']} ~ {r['Related_Variables']}" for r in relation_dict if r['Relation_Type'] == 'mediation' or r['Relation_Type'] == 'both'])
+    model_spec += "\n".join([f"{r['Variable']} ~ {r['Related_Variables']}" for r in relation_dict]) #if r['Relation_Type'] == 'mediation' or r['Relation_Type'] == 'both'])
 
 
     print('\n\n ========= Model Spec ===========')
@@ -248,7 +248,8 @@ def conduct_sem_analysis(data, sem_model_spec, observable_dict, mediator_dict, d
     sem_inspect = sem_model.inspect(std_est=True)
 
     print('\n===================================')
-    print(sem_inspect)
+    print(sem_inspect.head(100))
+    print('\n================ 252 ==================')
 
     # Post process SEM results
     sem_inspect_enhanced, sem_inspect_filtered, graph_filtered_results, graph_fulll_results = post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, mediator_dict, dependent_dict)
@@ -259,7 +260,8 @@ def post_process_sem_results(sem_model_spec, sem_inspect, observable_dict, media
 
     # Inhance the inspect table by inserting 2 new columns: significance and direction
     sem_inspect_enhanced = enhance_inspection(sem_inspect)
-    print(sem_inspect_enhanced)
+    print(sem_inspect_enhanced.head(10))
+    print('\n================ 264 ==================')
 
     filename = 'SEM_Results'
     excel_file_path = f'{output_path}{filename}.xlsx'
@@ -821,7 +823,6 @@ def interpret_sem_stats(sem_stats, parameters_dict):
         reasons_str = ', or '.join(reasons)
         overall_msg = f"The model likely doesn't fit the data well. Because: {reasons_str}"
 
-
     return new_df, overall_msg
 
 
@@ -850,7 +851,7 @@ def interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_di
             'Name': dependent_variable_name,
             'Related_Variables': related_variables_df
         }   
-    print(related_dict)
+    #print(related_dict)
 
     interpretations = []
     interpretation = ATTENTION_SEMOPY_INTERPRETATION
@@ -858,8 +859,8 @@ def interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_di
     for key, value in related_dict.items():
         dependent_variable_name = value['Name']
         related_variables_df = value['Related_Variables']
-        # print(dependent_variable_name, related_variables_df)
-        
+        #print(dependent_variable_name, related_variables_df)
+
         # Interpret Role of the construct
         interpretation += f"### **{dependent_variable_name}**:\n"
         interpretation += f"\n**Role in the Model**:\n"
@@ -872,16 +873,21 @@ def interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_di
 
         # Filter rows where the construct is the rval
         # print(sem_inspect)
-        related_rows = sem_inspect[sem_inspect['rval'] == dependent_variable_name]
+        #related_rows = sem_inspect[sem_inspect['rval'] == dependent_variable_name]
+        related_rows = sem_inspect[sem_inspect['lval'] == dependent_variable_name]
         related_rows = related_rows.reset_index(drop=True)
-
+        
+        #print(related_variables_df, dependent_variable_name)
+        #print(related_rows)
         for index, related_var in enumerate(related_variables_df):
             row_index = index 
             related_var_significant = related_rows.at[row_index, 'Significance']
             related_var_relation = related_rows.at[row_index, 'Relation']
             related_var_estimate = related_rows.at[row_index, 'Estimate']
             related_var_p_value = related_rows.at[row_index, 'p-value']
-            # print(row_index, related_var_estimate)
+            #print(row_index, related_var, related_var_estimate)
+
+            
 
             if row_index == 0: # Set as reference
                 interpretation += f"\n  - `{related_var}`, as the first construct, its Estimate is set to 1 (Est = 1), establishing a baseline for comparison."
@@ -897,7 +903,7 @@ def interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_di
         # Filter rows where the construct is the lval
         related_rows = sem_inspect[sem_inspect['lval'] == dependent_variable_name]
         related_rows = related_rows.reset_index(drop=True)
-        print(related_rows)
+        #print(related_rows)
         if len(related_variables_df) > 0:
             for index, related_var in enumerate(related_variables_df):
                 row_index = index 
@@ -912,7 +918,6 @@ def interepret_sem_inspect(sem_inspect_enhanced, dependent_dict, sem_relation_di
                     interpretation += f"an increase in (1 unit) `{dependent_variable_name}` is associated with an increase (`{related_var_estimate:.3f}`) in `{related_var}`.\n"
                 else:
                     interpretation += f"an increase (1 unit) in `{dependent_variable_name}` is associated with a decrease (`{related_var_estimate:.3f}`) in `{related_var}`.\n"
-
 
     interpretations.append(interpretation)
 
