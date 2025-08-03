@@ -363,8 +363,8 @@ if model_file_path is not None and data_file_path is not None:
 
 
         st.write('\n\n-----------\n\n\n\n')
-        st.write('And more ... Only 1 minute to convert Youtube video to slides!')
-        st.write('https://htvinh-youtube2slides-streamlit-app-k14x3w.streamlitapp.com/')
+        st.write('And more ... Check out the codes on GitHub!')
+        st.write('https://github.com/htvinh/survey_analysis')
 
         st.write('\n\n-----------\n\n\n\n')
         st.header('\n\n========= The END ========')
