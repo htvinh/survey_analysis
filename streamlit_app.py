@@ -22,26 +22,22 @@ st.set_page_config(layout="wide")
 st.title("SDA: Survey Data Analysis")
 st.header("With Regression and SEM")
 st.write("This app helps you analyze survey data using Regression and SEM models.")
-st.write('\n\n-----------\n\n\n\n')
-
 
 st.subheader('2 Steps To Do:')
 st.write('Step 1:  Download Data Model Sample file')
 # To link to Data Model Sample Excel file
-data_model_sample_url = 'https://docs.google.com/spreadsheets/d/1CK0iJmdkVbpe8iOg7K12bisO2bvv7sFL/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
+data_model_sample_url = 'https://github.com/htvinh/dataset/blob/main/survey_analysis_samples/model_sample_1.xlsx'
 st.write(f'- [Data Model Sample file download]({data_model_sample_url})')
 st.write('- Customize this Excel file according to your model and questionnaire structure.')
 
 st.write('Step 2: Upload the survey data (Excel file downloaded from Google Forms or others).')
 
 # To link to Survey Data Sample Excel file
-data_sample_url = 'https://docs.google.com/spreadsheets/d/1CKDq-lUkTGQKOTD-CsyT90TFAKHpVUNn/edit?usp=sharing&ouid=103775647130982487748&rtpof=true&sd=true'
+data_sample_url = 'https://github.com/htvinh/dataset/blob/main/survey_analysis_samples/survey_data_sample_1.xlsx'
 st.write(f'- [Survey Data Sample file to download]({data_sample_url})')
 
-st.write('\n\n-----------')
 st.write('Contact:     ho.tuong.vinh@gmail.com')
 st.write('ATTENTION: I HAVE NO RESPONSIBILITY FOR THE OUTCOME OF THIS ANALYSIS. USE WITH CAUTION!')
-st.write('\n\n-----------\n\n\n\n')
 
 st.header("Analysis Workflow")
 
