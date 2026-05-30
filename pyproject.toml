@@ -1,0 +1,24 @@
+[project]
+name = "survey-analysis"
+version = "1.0.0"
+description = "Survey Data Analysis Tool with Regression and SEM"
+requires-python = ">=3.9"
+dependencies = [
+    "streamlit",
+    "pandas",
+    "numpy",
+    "statsmodels",
+    "scikit-learn",
+    "graphviz",
+    "semopy",
+    "matplotlib",
+    "seaborn",
+    "openpyxl",
+    "lxml",
+]
+
+[project.scripts]
+survey-analysis = "src.app:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

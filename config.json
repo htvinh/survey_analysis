@@ -1,0 +1,13 @@
+{
+  "app": {
+    "output_path": "./output/",
+    "max_image_pixels": null
+  },
+  "defaults": {
+    "replace_nan": "NAN",
+    "correlation": {
+      "threshold_strong": 0.7,
+      "threshold_moderate": 0.3
+    }
+  }
+}
