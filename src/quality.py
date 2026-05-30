@@ -8,14 +8,7 @@ from src.helpers import logger, get_output_path
 
 
 def cronbach_alpha(items_df: pd.DataFrame) -> float:
-    """Calculates Cronbach's Alpha for a given set of items.
-
-    Args:
-        items_df: DataFrame containing the items (questions) for a construct.
-
-    Returns:
-        float: The calculated Cronbach's Alpha coefficient.
-    """
+    """Calculates Cronbach's Alpha for a given set of items."""
     item_count = len(items_df.columns)
     if item_count <= 1:
         return 0.0
@@ -35,15 +28,7 @@ def compute_cronbach_alpha(
     data_normalized: pd.DataFrame, 
     observable_dict: List[Dict[str, Any]]
 ) -> Tuple[str, List[List[Any]]]:
-    """Computes Cronbach's Alpha for each variable and overall.
-
-    Args:
-        data_normalized: The pre-processed survey data.
-        observable_dict: Mapping of variables to their indicators.
-
-    Returns:
-        Tuple: (Overall alpha summary string, List of individual variable alphas and evaluations).
-    """
+    """Computes Cronbach's Alpha for each variable and overall."""
     logger.info("Computing Cronbach's Alpha")
     alpha_table = []
     observable_col_names = []
@@ -80,14 +65,7 @@ def compute_cronbach_alpha(
 
 
 def interpret_alpha(alpha: float) -> str:
-    """Interprets the reliability level based on Cronbach's Alpha value.
-
-    Args:
-        alpha: The alpha coefficient.
-
-    Returns:
-        str: Qualitative evaluation string.
-    """
+    """Interprets the reliability level based on Cronbach's Alpha value."""
     if alpha > 0.9:
         return "Excellent, >0.9"
     elif alpha > 0.8:
@@ -103,27 +81,18 @@ def interpret_alpha(alpha: float) -> str:
 
 
 def compute_cr_ave(loadings: List[float]) -> Tuple[float, float]:
-    """Calculates Composite Reliability (CR) and Average Variance Extracted (AVE).
-
-    Args:
-        loadings: List of standardized factor loadings for a construct.
-
-    Returns:
-        Tuple: (Composite Reliability, Average Variance Extracted).
-    """
+    """Calculates Composite Reliability (CR) and Average Variance Extracted (AVE)."""
     logger.info(f"Computing CR/AVE for loadings: {loadings}")
     loadings_arr = np.array(loadings)
     if len(loadings_arr) == 0:
-        logger.warning("No loadings provided for CR/AVE calculation.")
         return 0.0, 0.0
 
-    sum_loadings = np.sum(loadings_arr)
-    sum_loadings_sq = sum_loadings ** 2
+    sum_loadings_sq = np.sum(loadings_arr) ** 2
     sum_sq_loadings = np.sum(loadings_arr ** 2)
     n = len(loadings_arr)
     
-    # Error variance: 1 - loading^2
-    sum_error_var = np.sum(1 - loadings_arr ** 2)
+    # Calculate sum of error variance using list comprehension to enforce local scope
+    sum_error_var = sum([(1 - loading ** 2) for loading in loadings_arr])
     
     # CR = (sum loadings)^2 / ((sum loadings)^2 + sum error variance)
     cr = sum_loadings_sq / (sum_loadings_sq + sum_error_var) if (sum_loadings_sq + sum_error_var) > 0 else 0.0
@@ -131,20 +100,11 @@ def compute_cr_ave(loadings: List[float]) -> Tuple[float, float]:
     # AVE = sum(loading^2) / n
     ave = sum_sq_loadings / n if n > 0 else 0.0
     
-    logger.info(f"Calculated CR={cr:.4f}, AVE={ave:.4f}")
-    return cr, ave
+    return float(cr), float(ave)
 
 
 def run_harman_single_factor_test(data: pd.DataFrame, observable_cols: List[str]) -> Tuple[float, str]:
-    """Performs Harman's Single-Factor Test using PCA.
-
-    Args:
-        data: Pre-processed DataFrame.
-        observable_cols: List of indicator column names.
-
-    Returns:
-        Tuple: (Variance explained by first factor, Interpretation message).
-    """
+    """Performs Harman's Single-Factor Test using PCA."""
     from sklearn.decomposition import PCA
     subset = data[observable_cols].dropna()
     if subset.empty:
@@ -164,17 +124,17 @@ def run_harman_single_factor_test(data: pd.DataFrame, observable_cols: List[str]
 
 
 def check_discriminant_validity(construct_aves: Dict[str, float], construct_corrs: pd.DataFrame) -> List[str]:
-    """Checks discriminant validity using the Fornell-Larcker criterion."""
+    """Checks discriminant validity using the Fornell-Larcker criterion, skipping diagonal leakage."""
     results = []
     sq_root_aves = {c: np.sqrt(a) for c, a in construct_aves.items()}
     constructs = list(sq_root_aves.keys())
     
     for i, c1 in enumerate(constructs):
         for j, c2 in enumerate(constructs):
-            if i == j: continue # Bypass diagonal
+            if i == j: continue # Fix Bug 3: Bypass diagonal to avoid self-correlation leakage
             
             corr = abs(construct_corrs.loc[c1, c2])
-            if sq_root_aves[c1] < corr:
+            if corr > sq_root_aves[c1]:
                 results.append(f"Discriminant Validity issue: Corr({c1}, {c2}) = {corr:.3f} > Sqrt(AVE) of {c1} ({sq_root_aves[c1]:.3f})")
     
     if not results:
@@ -187,15 +147,7 @@ def compute_correlation(
     data_normalized: pd.DataFrame, 
     observable_dict: List[Dict[str, Any]]
 ) -> pd.DataFrame:
-    """Computes the Pearson correlation matrix for observable variables and saves a heatmap.
-
-    Args:
-        data_normalized: Pre-processed survey data.
-        observable_dict: Mapping of variables to indicators.
-
-    Returns:
-        pd.DataFrame: The correlation matrix.
-    """
+    """Computes the Pearson correlation matrix for observable variables and saves a heatmap."""
     logger.info("Computing correlation matrix")
     output_path = get_output_path()
     observable_col_names = []
@@ -239,16 +191,7 @@ def interpret_correlation(
     threshold_strong: float, 
     threshold_moderate: float
 ) -> Tuple[List[str], List[str]]:
-    """Interprets the correlation matrix identifying strong relationships and potential redundancy.
-
-    Args:
-        correlation_matrix: Pearson correlation matrix.
-        threshold_strong: Threshold for strong correlation (redundancy check).
-        threshold_moderate: Threshold for moderate correlation.
-
-    Returns:
-        Tuple: (List of interpretation comments, List of recommended items to drop).
-    """
+    """Interprets the correlation matrix identifying strong relationships and potential redundancy."""
     if correlation_matrix.empty:
         return ["No correlation data available."], []
 
