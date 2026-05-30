@@ -105,6 +105,9 @@ def conduct_sem_analysis(
         )
         
         return None, sem_stats, sem_inspect, enhanced, filtered, g_short, g_full
+    except np.linalg.LinAlgError:
+        logger.error("SEM Analysis failed: Non-positive definite matrix.")
+        raise Exception("The model failed to fit because the data matrix is not positive definite. This is likely due to high multicollinearity or extreme redundancy between indicators. Please check correlations (Step 6) and consider pruning highly correlated redundant items.")
     except Exception as e:
         logger.error(f"SEM Analysis failed: {e}")
         raise
