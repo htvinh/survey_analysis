@@ -37,8 +37,7 @@ def generate_markdown_report(
     reg_result_graph_path: str,
     std_reg_interpretations: List[List[Any]],
     std_reg_result_graph_path: str,
-    moderator_results: Dict[str, pd.DataFrame],
-    moderator_observations: Dict[str, List[str]],
+    mga_markdown: str,
     sem_model_spec: str,
     sem_stats_table: pd.DataFrame,
     sem_overall_msg: str,
@@ -94,7 +93,7 @@ def generate_markdown_report(
     report.append("### Correlation Heatmap\n")
     report.append(image_to_base64_markdown(heatmap_path, "Correlation Heatmap") + "\n\n")
 
-    # Step 7: Recommendations (Moved earlier)
+    # Step 7: Recommendations
     report.append("## 5. Preliminary Recommendations & Robustness\n")
     if recommended_drops:
         report.append("### Model Parsimony & Item Pruning\n")
@@ -133,17 +132,9 @@ def generate_markdown_report(
     report.append(image_to_base64_markdown(sem_graph_short_path, "SEM Short Results") + "\n\n")
 
     # Step 11: Subgroup
-    if moderator_results:
+    if mga_markdown:
         report.append("## 8. Multi-Group Moderation Analysis\n")
-        for rel, df in moderator_results.items():
-            report.append(f"### Subgroup Comparison: {rel}\n")
-            report.append(df.to_markdown() + "\n")
-            
-            if rel in moderator_observations:
-                report.append("#### Observations:\n")
-                for obs in moderator_observations[rel]:
-                    report.append(f"{obs}\n")
-                report.append("\n")
+        report.append(mga_markdown + "\n")
 
     return "\n".join(report)
 

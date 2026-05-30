@@ -360,29 +360,25 @@ def main():
 
                 # 10. Subgroup Analysis (Step 11)
                 moderators = [v['Variable'] for v in dem_dict if str(v.get('used_as_moderator')).lower() == 'yes']
-                mod_results = {}
+                
+                # Dynamic MGA
+                # Note: Assuming 'dem_dict' is the list of dicts, we need DataFrame for the new pipeline
+                demographic_config_df = pd.DataFrame(dem_dict)
+                relations_config_df = pd.DataFrame(rel_dict)
+                
+                mga_markdown = ""
                 if moderators:
                     st.header("Step 11: Multi-Group Moderation Analysis")
-                    mod_results = reg.conduct_regression_analysis_with_moderators(
-                        reg_m_spec_dict, data_norm, label_map, moderators, reg_results
+                    mga_markdown = reg.generate_dynamic_multi_group_analysis(
+                        data_norm, relations_config_df, demographic_config_df
                     )
-                    mod_tables = mod_results['comparison_tables']
-                    mod_observations = reg.interpret_moderator_results(mod_tables)
-                    
-                    for rel, df in mod_tables.items():
-                        st.subheader(f"Cohort Comparison: {rel}")
-                        st.dataframe(df)
-                        
-                        if rel in mod_observations:
-                            st.markdown("**Observations:**")
-                            for obs in mod_observations[rel]:
-                                st.info(obs)
+                    st.markdown(mga_markdown)
                 st.divider()
 
                 # 11. Final Report (Step 12)
                 st.header("Step 12: Generate Final Report")
                 
-                mod_tables = mod_results.get('comparison_tables', {})
+                # Pass the generated markdown string to the report generator
                 
                 # Generate the Markdown report content (with table)
                 report_md = generate_markdown_report(
@@ -404,8 +400,7 @@ def main():
                     reg_result_graph_path=reg_result_graph_path,
                     std_reg_interpretations=std_reg_interp,
                     std_reg_result_graph_path=std_reg_result_graph_path,
-                    moderator_results=mod_tables,
-                    moderator_observations=mod_observations,
+                    mga_markdown=mga_markdown, # Pass new MGA content
                     sem_model_spec=sem_m_spec,
                     sem_stats_table=stats_table,
                     sem_overall_msg=overall_msg,
