@@ -73,7 +73,7 @@ def main():
     # Main Content
     st.title("SDA: Survey Data Analysis")
     st.markdown("""
-    Analyze survey data using **Regression** and **Structural Equation Modeling (SEM)**.
+    Analyze survey data using **Regression** and **Structural Equation Modeling (SEM). Publication-Grade Analysis**.
     """)
 
     with st.expander("Analysis Workflow Summary"):
