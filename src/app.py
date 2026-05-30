@@ -226,6 +226,7 @@ def main():
                 for construct in all_constructs:
                     # Convert to numeric, coerce errors to NaN and drop them
                     c_loadings = pd.to_numeric(loadings_df[loadings_df['rval'] == construct]['Est. Std'], errors='coerce').dropna().tolist()
+                    logger.info(f"Loadings for {construct}: {c_loadings}")
                     cr, ave = compute_cr_ave(c_loadings)
                     construct_metrics[construct] = {'CR': cr, 'AVE': ave}
 
@@ -358,13 +359,14 @@ def main():
                 st.divider()
 
                 # 10. Subgroup Analysis (Step 11)
-                moderators = [v['Variable'] for v in dem_dict if v.get('used_as_moderator') == 'yes']
-                mod_tables = {}
+                moderators = [v['Variable'] for v in dem_dict if str(v.get('used_as_moderator')).lower() == 'yes']
+                mod_results = {}
                 if moderators:
                     st.header("Step 11: Multi-Group Moderation Analysis")
-                    mod_tables = reg.conduct_regression_analysis_with_moderators(
+                    mod_results = reg.conduct_regression_analysis_with_moderators(
                         reg_m_spec_dict, data_norm, label_map, moderators, reg_results
                     )
+                    mod_tables = mod_results['comparison_tables']
                     mod_observations = reg.interpret_moderator_results(mod_tables)
                     
                     for rel, df in mod_tables.items():
@@ -379,6 +381,8 @@ def main():
 
                 # 11. Final Report (Step 12)
                 st.header("Step 12: Generate Final Report")
+                
+                mod_tables = mod_results.get('comparison_tables', {})
                 
                 # Generate the Markdown report content (with table)
                 report_md = generate_markdown_report(

@@ -578,8 +578,8 @@ def conduct_regression_analysis_with_moderators(
     label_mappings: Dict, 
     moderators: List[str], 
     baseline_results: List[List[Any]]
-) -> Dict[str, pd.DataFrame]:
-    """Performs subgroup analysis for each unique value of moderator variables.
+) -> Dict[str, Any]:
+    """Performs subgroup analysis and returns both comparison tables and detailed subgroup results.
 
     Args:
         model_spec_dict: Parsed model specification.
@@ -589,19 +589,20 @@ def conduct_regression_analysis_with_moderators(
         baseline_results: Results from the full dataset for comparison.
 
     Returns:
-        Dict[str, pd.DataFrame]: Dictionary mapping relationship names to comparison tables.
+        Dict[str, Any]: Contains 'comparison_tables' and 'subgroup_details'.
     """
     logger.info(f"Conducting moderator analysis for: {moderators}")
     from src.helpers import get_back_original_label_from_numerical_label
     
-    comparison_data = {}
+    comparison_tables = {}
+    subgroup_details = {}
     
     # Initialize comparison tables with baseline
     for relation, summary in baseline_results:
         _, _, coefs = extract_regression_results(summary)
         df_base = pd.DataFrame(coefs).T[['Estimated Coefficient', 'P-Value']]
         df_base.columns = ['Baseline Coef', 'Baseline P-Val']
-        comparison_data[relation] = df_base
+        comparison_tables[relation] = df_base
 
     for moderator in moderators:
         if moderator not in data_normalized.columns:
@@ -614,17 +615,23 @@ def conduct_regression_analysis_with_moderators(
             
             if len(subset) < 5: # Skip very small subgroups
                 continue
-                
+            
             sub_results = conduct_regression_analysis(subset, model_spec_dict)
+            subgroup_key = f"{moderator}_{label}"
+            subgroup_details[subgroup_key] = sub_results
+
             for rel, sub_summary in sub_results:
-                if rel in comparison_data:
+                if rel in comparison_tables:
                     _, _, sub_coefs = extract_regression_results(sub_summary)
                     col_name = f"{moderator}_{label}_Coef"
                     for var, info in sub_coefs.items():
-                        if var in comparison_data[rel].index:
-                            comparison_data[rel].loc[var, col_name] = info['Estimated Coefficient']
+                        if var in comparison_tables[rel].index:
+                            comparison_tables[rel].loc[var, col_name] = info['Estimated Coefficient']
 
-    return comparison_data
+    return {
+        'comparison_tables': comparison_tables,
+        'subgroup_details': subgroup_details
+    }
 
 
 
