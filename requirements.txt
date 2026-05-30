@@ -4,8 +4,7 @@ pandas
 numpy
 statsmodels
 scikit-learn
-graphviz
-wheel
+#graphviz
 semopy
 matplotlib
 seaborn
