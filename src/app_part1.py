@@ -1,0 +1,32 @@
+                # 11. Final Report (Step 12)
+                st.header("Step 12: Generate Final Report")
+                
+                # Generate the Markdown report content (with table)
+                report_md = generate_markdown_report(
+                    demographic_dict=dem_dict,
+                    data_raw=data_raw,
+                    overall_alpha=overall_a,
+                    reliability_df=rel_df,
+                    validity_ave_df=pd.DataFrame(ave_data, columns=["Construct", "AVE", "Result"]),
+                    discriminant_validity_results=dv_results,
+                    harman_msg=harman_msg,
+                    correlation_matrix=corr_matrix,
+                    corr_interpretations=corr_interp,
+                    recommended_drops=rec_drops,
+                    heatmap_path=heatmap_path,
+                    reg_m_spec=reg_m_spec,
+                    reg_interp=reg_interp,
+                    reg_summ_tables=reg_summ_tables,
+                    reg_vif_tables=reg_vif_tables,
+                    reg_result_graph_path=reg_result_graph_path,
+                    std_reg_interpretations=std_reg_interp,
+                    std_reg_result_graph_path=std_reg_result_graph_path,
+                    mga_markdown=mga_markdown,
+                    sem_model_spec=sem_m_spec,
+                    sem_stats_table=stats_table,
+                    sem_overall_msg=overall_msg,
+                    sem_interps=sem_interps,
+                    sem_graph_full_path=g_full,
+                    sem_graph_short_path=g_short,
+                    include_corr_table=True
+                )
