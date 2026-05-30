@@ -74,7 +74,6 @@ def main():
     st.title("SDA: Survey Data Analysis")
     st.markdown("""
     Analyze survey data using **Regression** and **Structural Equation Modeling (SEM)**.
-    Follow the steps below to upload your data and generate reports.
     """)
 
     with st.expander("Analysis Workflow Summary"):
