@@ -544,18 +544,26 @@ def interpret_moderator_results(comparison_data: Dict[str, pd.DataFrame]) -> Dic
         rel_obs = []
         baseline_col = 'Baseline Coef'
         
-        # Columns that are not baseline or p-values
-        subgroup_cols = [c for c in df.columns if c not in [baseline_col, 'Baseline P-Val']]
+        # Columns that are coefficients (baseline or subgroup)
+        subgroup_cols = [c for c in df.columns if 'Coef' in c]
+        
+        # Need the actual baseline coefficient column name
+        baseline_col = 'Baseline Coef'
         
         for var in df.index:
             baseline_val = df.loc[var, baseline_col]
             for col in subgroup_cols:
+                if col == baseline_col:
+                    continue
+                    
                 sub_val = df.loc[var, col]
                 if pd.notnull(sub_val):
                     diff = sub_val - baseline_val
                     if abs(diff) > 0.1:  # Threshold for "notable" difference
                         direction = "stronger" if diff > 0 else "weaker"
-                        rel_obs.append(f"- **{var}**: Effect is {direction} for {col} (Δ={diff:.2f}) compared to baseline.")
+                        # Clean column name for better report readability (remove '_Coef')
+                        group_name = col.replace('_Coef', '')
+                        rel_obs.append(f"- **{var}**: Effect is {direction} for {group_name} (Δ={diff:.2f}) compared to baseline.")
         
         if rel_obs:
             observations[rel] = rel_obs
@@ -609,7 +617,7 @@ def conduct_regression_analysis_with_moderators(
             for rel, sub_summary in sub_results:
                 if rel in comparison_data:
                     _, _, sub_coefs = extract_regression_results(sub_summary)
-                    col_name = f"{moderator}_{label}"
+                    col_name = f"{moderator}_{label}_Coef"
                     for var, info in sub_coefs.items():
                         if var in comparison_data[rel].index:
                             comparison_data[rel].loc[var, col_name] = info['Estimated Coefficient']

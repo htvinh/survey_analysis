@@ -174,7 +174,7 @@ def main():
     # Sidebar for Info and Links
     with st.sidebar:
         if os.path.exists("sda_logo.png"):
-            st.image("sda_logo.png", use_container_width=True)
+            st.image("sda_logo.png", width='stretch')
         st.header("Resources")
         st.markdown("[Model Sample File](https://github.com/htvinh/dataset/blob/main/survey_analysis_samples/model_sample_1.xlsx)")
         st.markdown("[Survey Data Sample](https://github.com/htvinh/dataset/blob/main/survey_analysis_samples/survey_data_sample_1.xlsx)")
@@ -220,7 +220,8 @@ def main():
                 loadings_df = sem_enh[sem_enh['op'] == '=~']
                 construct_metrics = {}
                 for construct in {**{d['Variable']: d for d in indep_dict}, **{d['Variable']: d for d in dep_dict}}:
-                    c_loadings = loadings_df[loadings_df['rval'] == construct]['Est. Std'].tolist()
+                    # Convert to numeric, coerce errors to NaN and drop them
+                    c_loadings = pd.to_numeric(loadings_df[loadings_df['rval'] == construct]['Est. Std'], errors='coerce').dropna().tolist()
                     cr, ave = compute_cr_ave(c_loadings)
                     construct_metrics[construct] = {'CR': cr, 'AVE': ave}
 
@@ -252,7 +253,10 @@ def main():
                 construct_corrs = sem_enh[(sem_enh['op'] == '~~') & (sem_enh['lval'].isin(latent_names)) & (sem_enh['rval'].isin(latent_names)) & (sem_enh['lval'] != sem_enh['rval'])]
                 
                 # Build construct corr matrix
-                c_corr_matrix = pd.DataFrame(1.0, index=latent_names, columns=latent_names)
+                c_corr_matrix = pd.DataFrame(0.0, index=latent_names, columns=latent_names)
+                for name in latent_names:
+                    c_corr_matrix.loc[name, name] = 1.0
+                    
                 for _, row in construct_corrs.iterrows():
                     val = float(row['Est. Std']) if pd.notnull(row['Est. Std']) else 0.0
                     c_corr_matrix.loc[row['lval'], row['rval']] = val
