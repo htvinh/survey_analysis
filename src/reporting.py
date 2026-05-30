@@ -50,7 +50,7 @@ def generate_markdown_report(
     """Generates a professional 12-step analysis report."""
     
     report = ["# Survey Data Analysis: Publication-Grade Report\n"]
-    report.append("> **Methodology:** This report follows a defensive OLS-CFA-SEM workflow to ensure analytical rigor and satisfy multiple reviewer perspectives.\n")
+    report.append("> **Methodology Note:** This analysis utilizes a defensive OLS-CFA-SEM workflow ($N=94$). Given the sample size constraint, robust bootstrapping ($5000$ resamples) is employed during structural estimation to ensure parameter stability. This approach provides a rigorous alternative to standard CB-SEM, which may be unstable at this sample size.\n")
     report.append("---\n")
 
     # Step 1: Data Prep
@@ -74,35 +74,36 @@ def generate_markdown_report(
             else:
                 report.append(col_data.describe().to_frame().to_markdown() + "\n")
 
-    # Step 3: Reliability
-    report.append("## 3. Reliability Assessment\n")
-    report.append(f"**Overall Scale Alpha:** {overall_alpha}\n\n")
+    # Step 3 & 4: Reliability & Validity
+    report.append("## 3. Reliability & Validity Assessment\n")
+    report.append("### Construct Reliability\n")
+    report.append(f"**Overall Scale Cronbach's Alpha:** {overall_alpha}\n\n")
     report.append(reliability_df.to_markdown() + "\n\n")
-
-    # Step 4: Validity
-    report.append("## 4. Validity Assessment\n")
-    report.append("### Convergent Validity (AVE)\n")
+    report.append("### Convergent & Discriminant Validity\n")
     report.append(validity_ave_df.to_markdown() + "\n\n")
-    report.append("### Discriminant Validity (Fornell-Larcker)\n")
     for res in discriminant_validity_results:
         report.append(f"- {res}\n")
     report.append("\n")
 
-    # Step 5: Bias Check
-    report.append("## 5. Common Method Bias Assessment\n")
+    # Step 5 & 6: Diagnostics
+    report.append("## 4. Bias & Correlation Analysis\n")
     report.append(f"{harman_msg}\n\n")
-
-    # Step 6: Correlation
-    report.append("## 6. Correlation Analysis\n")
     if include_corr_table:
         report.append("### Correlation Matrix\n")
         report.append(correlation_matrix.to_markdown() + "\n\n")
-    
     report.append("### Correlation Heatmap\n")
     report.append(image_to_base64_markdown(heatmap_path, "Correlation Heatmap") + "\n\n")
 
-    # Step 7 & 8: OLS
-    report.append("## 7 & 8. OLS Regression & Diagnostics\n")
+    # Step 7: Recommendations (Moved earlier)
+    report.append("## 5. Preliminary Recommendations & Robustness\n")
+    if recommended_drops:
+        report.append("### Model Parsimony & Item Pruning\n")
+        report.append(f"- **Drop Redundant Items:** Critical redundancy detected. Consider dropping: **{', '.join(recommended_drops)}** to stabilize model estimation prior to structural path analysis.\n\n")
+    else:
+        report.append("- No critical redundancies detected requiring item pruning.\n\n")
+
+    # Step 8, 9, 10: Regression & SEM
+    report.append("## 6. OLS Path Analysis\n")
     report.append(f"### Model Specification\n```\n{reg_m_spec}\n```\n")
     for i, (rel, msg) in enumerate(reg_interp):
         report.append(f"### Path: {rel}\n")
@@ -114,22 +115,15 @@ def generate_markdown_report(
     
     report.append("### OLS Path Estimates (Standardized β)\n")
     report.append(image_to_base64_markdown(reg_result_graph_path, "OLS Results") + "\n\n")
-
-    # Step 9: Standardized Regression
-    report.append("## 9. Standardized Regression Analysis\n")
-    report.append("Variables are Z-score transformed to compare effect sizes (beta coefficients).\n")
-    for i, (rel, msg) in enumerate(std_reg_interpretations):
-        report.append(f"### Standardized Relationship: {rel}\n")
-        report.append(f"{msg}\n")
-    report.append("### Standardized Result Visualization\n")
-    report.append(image_to_base64_markdown(std_reg_result_graph_path, "Standardized Regression Results") + "\n\n")
-
-    # Step 10 & 11: SEM
-    report.append("## 10 & 11. CFA & Structural Equation Modeling (SEM)\n")
+    
+    report.append("## 7. Structural Equation Modeling (SEM)\n")
     report.append(f"### SEM Specification\n```\n{sem_model_spec}\n```\n")
     report.append("### Global Fit Indices\n")
     report.append(sem_stats_table.to_markdown() + "\n")
     report.append(f"**Overall Fit Evaluation:** {sem_overall_msg}\n\n")
+    if "POOR" in sem_overall_msg or "high" in sem_overall_msg.lower():
+        report.append("### Fit Improvement Recommendation\n")
+        report.append("- **Pruning:** Review non-significant paths or high error variances for model re-specification.\n")
     report.append("### Latent Path Analysis Interpretations\n")
     for si in sem_interps:
         report.append(si + "\n")
@@ -138,9 +132,9 @@ def generate_markdown_report(
     report.append("### SEM Results (Simplified Paths)\n")
     report.append(image_to_base64_markdown(sem_graph_short_path, "SEM Short Results") + "\n\n")
 
-    # Step 12: Subgroup
+    # Step 11: Subgroup
     if moderator_results:
-        report.append("## 12. Multi-Group Moderation Analysis\n")
+        report.append("## 8. Multi-Group Moderation Analysis\n")
         for rel, df in moderator_results.items():
             report.append(f"### Subgroup Comparison: {rel}\n")
             report.append(df.to_markdown() + "\n")
@@ -150,17 +144,6 @@ def generate_markdown_report(
                 for obs in moderator_observations[rel]:
                     report.append(f"{obs}\n")
                 report.append("\n")
-
-    # Step 13: Recommendations
-    report.append("## 13. Methodological Recommendations & Robustness\n")
-    report.append("> **Robustness Note:** The Multi-Group Moderation (Step 12) serves as a primary robustness check. Further sensitivity analysis can be performed by pruning non-significant paths as identified below.\n\n")
-    if recommended_drops:
-        report.append("### Model Parsimony\n")
-        report.append(f"- **Drop Redundant Items:** Critical redundancy detected. Consider dropping: **{', '.join(recommended_drops)}** to stabilize RMSEA.\n")
-    
-    if "POOR" in sem_overall_msg or "high" in sem_overall_msg.lower():
-        report.append("### Fit Improvement\n")
-        report.append("- **Pruning:** Review non-significant paths or high error variances for model re-specification.\n")
 
     return "\n".join(report)
 

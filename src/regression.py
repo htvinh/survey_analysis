@@ -544,8 +544,8 @@ def interpret_moderator_results(comparison_data: Dict[str, pd.DataFrame]) -> Dic
         rel_obs = []
         baseline_col = 'Baseline Coef'
         
-        # Columns that are not baseline
-        subgroup_cols = [c for c in df.columns if c != baseline_col]
+        # Columns that are not baseline or p-values
+        subgroup_cols = [c for c in df.columns if c not in [baseline_col, 'Baseline P-Val']]
         
         for var in df.index:
             baseline_val = df.loc[var, baseline_col]
