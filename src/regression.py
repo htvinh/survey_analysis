@@ -545,12 +545,12 @@ def run_regression_engine(dataframe, target, features):
 
 def generate_dynamic_multi_group_analysis(global_df, relations_config, demographic_config):
     """
-    Completely dynamic MGA pipeline. Maps and joins wide subgroup data without 
-    dropping columns due to index or category formatting string mismatches.
+    100% Dynamic, metadata-driven multi-group matrix engine.
+    Ensures group columns align and appends them cleanly into wide markdown formats.
     """
     mga_markdown_output = []
     
-    # Extract moderator column keys dynamically from metadata
+    # Locate all active moderators from config without mapping names explicitly
     moderator_columns = demographic_config[
         demographic_config['used_as_moderator'].str.lower() == 'yes'
     ]['Variable'].tolist()
@@ -559,69 +559,76 @@ def generate_dynamic_multi_group_analysis(global_df, relations_config, demograph
         target_var = row['Variable'].strip()
         predictors = [p.strip() for p in row['Related_Variables'].split('+')]
         
-        # Define baseline index tracks
+        # Base Index tracking format: structural path mapping rows
         paths_index = [f"{pred} -> {target_var}" for pred in predictors]
         compiled_matrix_df = pd.DataFrame(index=paths_index)
         
-        # 1. Compute and execute global baseline parameters
+        # 1. Compute and bind Global Baseline Data Series
         baseline_model = run_regression_engine(global_df, target_var, predictors)
         compiled_matrix_df['Baseline Coef'] = [baseline_model[pred]['coef'] for pred in predictors]
         compiled_matrix_df['Baseline P-Val'] = [baseline_model[pred]['p_val'] for pred in predictors]
         
-        # 2. Iterate dynamically over active demographic features
+        # 2. Iterate dynamically across metadata moderator features
         for moderator in moderator_columns:
             if moderator not in global_df.columns:
                 continue
             
-            # Extract unique values and strip spaces to prevent matching drops
+            # Extract unique response categories present in your live survey data
             unique_subgroups = global_df[moderator].dropna().unique()
             
-            subgroup_models = {}
-            for raw_group in unique_subgroups:
-                group_clean = str(raw_group).strip()
+            for group in unique_subgroups:
+                # Isolate sub-sample subset arrays
+                sliced_subgroup_df = global_df[global_df[moderator] == group]
                 
-                # Apply sliced filter mask on clean values
-                sliced_subgroup_df = global_df[global_df[moderator] == raw_group]
+                # Algorithmic check: Adapt threshold to small sample limitations
+                # Sets minimum boundary to 5 rows or 5% of total dataset dynamically
+                min_threshold = max(5, int(len(global_df) * 0.05))
                 
-                # Minimum data validation threshold check
-                if len(sliced_subgroup_df) >= 10:
-                    subgroup_models[group_clean] = run_regression_engine(
-                        sliced_subgroup_df, target_var, predictors
-                    )
-            
-            # 3. Safe Column Mapping Join Loop
-            for group_label, model_results in subgroup_models.items():
-                col_prefix = f"{moderator}[{group_label}]"
+                if len(sliced_subgroup_df) < min_threshold:
+                    continue  # Safely skip underrepresented strata
                 
-                # Safely parse matching coefficients out of results dictionaries
-                coefs, p_vals = [], []
+                # Compute subgroup parameters
+                subgroup_model = run_regression_engine(sliced_subgroup_df, target_var, predictors)
+                
+                # 3. Secure Column Binding Engine (Protects against lookup errors)
+                group_clean_label = str(group).replace("[", "").replace("]", "").strip()
+                coef_header = f"{moderator}[{group_clean_label}] Coef"
+                pval_header = f"{moderator}[{group_clean_label}] P-Val"
+                
+                coef_values = []
+                pval_values = []
                 for pred in predictors:
-                    pred_clean = pred.strip()
-                    if pred_clean in model_results:
-                        coefs.append(model_results[pred_clean]['coef'])
-                        p_vals.append(model_results[pred_clean]['p_val'])
+                    # Defensive lookup step if path calculation exists
+                    if pred in subgroup_model:
+                        coef_values.append(subgroup_model[pred]['coef'])
+                        pval_values.append(subgroup_model[pred]['p_val'])
                     else:
-                        coefs.append(np.nan)
-                        p_vals.append(np.nan)
+                        coef_values.append(np.nan)
+                        pval_values.append(np.nan)
                 
-                compiled_matrix_df[f"{col_prefix} Coef"] = coefs
-                compiled_matrix_df[f"{col_prefix} P-Val"] = p_vals
-                
-            # 4. Programmatic Delta ($\Delta$) Generation
-            qualified_groups = list(subgroup_models.keys())
-            if len(qualified_groups) >= 2:
-                for i in range(len(qualified_groups)):
-                    for j in range(i + 1, len(qualified_groups)):
-                        g1, g2 = qualified_groups[i], qualified_groups[j]
-                        delta_label = f"Δ ({g1} vs {g2})"
-                        
-                        # Compute absolute delta array differences
-                        coef_g1 = np.array([subgroup_models[g1].get(p, {}).get('coef', 0.0) for p in predictors])
-                        coef_g2 = np.array([subgroup_models[g2].get(p, {}).get('coef', 0.0) for p in predictors])
-                        
-                        compiled_matrix_df[delta_label] = np.abs(coef_g1 - coef_g2)
-                        
-        # 5. Flush structural dataframe out to Markdown block array
+                # Commit new data vectors back directly into the tracking master frame
+                compiled_matrix_df[coef_header] = coef_values
+                compiled_matrix_df[pval_header] = pval_values
+        
+        # 4. Programmatic Delta Verification Steps (Vectorized across the full frame)
+        coef_cols = [c for c in compiled_matrix_df.columns if 'Coef' in c and 'Baseline' not in c]
+        if len(coef_cols) >= 2:
+            for i in range(len(coef_cols)):
+                for j in range(i + 1, len(coef_cols)):
+                    col_a = coef_cols[i]
+                    col_b = coef_cols[j]
+                    
+                    # Extract pure subgroup labels from string headers cleanly
+                    label_a = col_a.split(']')[0].split('[')[-1]
+                    label_b = col_b.split(']')[0].split('[')[-1]
+                    delta_col_name = f"Δ ({label_a} vs {label_b})"
+                    
+                    # Single vectorized matrix delta evaluation loop
+                    compiled_matrix_df[delta_col_name] = np.abs(
+                        compiled_matrix_df[col_a] - compiled_matrix_df[col_b]
+                    )
+
+        # 5. Compile matrix dataframe out to Markdown buffer block strings
         relation_header = f"### Subgroup Comparison Matrix: {target_var} ~ {' + '.join(predictors)}\n\n"
         markdown_table = (
             compiled_matrix_df.reset_index()
