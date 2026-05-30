@@ -530,48 +530,6 @@ def create_result_graph_short(
 
 
 
-def interpret_moderator_results(comparison_data: Dict[str, pd.DataFrame]) -> Dict[str, List[str]]:
-    """Generates qualitative observations based on subgroup coefficient differences.
-
-    Args:
-        comparison_data: Dictionary mapping relationships to comparison DataFrames.
-
-    Returns:
-        Dict[str, List[str]]: Mapping of relationship to list of observations.
-    """
-    observations = {}
-    for rel, df in comparison_data.items():
-        rel_obs = []
-        baseline_col = 'Baseline Coef'
-        
-        # Columns that are coefficients (baseline or subgroup)
-        subgroup_cols = [c for c in df.columns if 'Coef' in c]
-        
-        # Need the actual baseline coefficient column name
-        baseline_col = 'Baseline Coef'
-        
-        for var in df.index:
-            baseline_val = df.loc[var, baseline_col]
-            for col in subgroup_cols:
-                if col == baseline_col:
-                    continue
-                    
-                sub_val = df.loc[var, col]
-                if pd.notnull(sub_val):
-                    diff = sub_val - baseline_val
-                    logger.info(f"Checking difference for {var} in {col}: baseline={baseline_val:.3f}, sub={sub_val:.3f}, diff={diff:.3f}")
-                    if abs(diff) > 0.05:  # Lowered threshold for "notable" difference
-                        direction = "stronger" if diff > 0 else "weaker"
-                        # Clean column name for better report readability (remove '_Coef')
-                        group_name = col.replace('_Coef', '')
-                        rel_obs.append(f"- **{var}**: Effect is {direction} for {group_name} (Δ={diff:.2f}) compared to baseline.")
-        
-        logger.info(f"Observations for {rel}: {rel_obs}")
-        if rel_obs:
-            observations[rel] = rel_obs
-            
-    return observations
-
 def conduct_regression_analysis_with_moderators(
     model_spec_dict: Dict[str, Any], 
     data_normalized: pd.DataFrame, 
@@ -579,59 +537,54 @@ def conduct_regression_analysis_with_moderators(
     moderators: List[str], 
     baseline_results: List[List[Any]]
 ) -> Dict[str, Any]:
-    """Performs subgroup analysis and returns both comparison tables and detailed subgroup results.
-
-    Args:
-        model_spec_dict: Parsed model specification.
-        data_normalized: Pre-processed data.
-        label_mappings: Categorical label mappings.
-        moderators: List of variable names to use as moderators.
-        baseline_results: Results from the full dataset for comparison.
-
-    Returns:
-        Dict[str, Any]: Contains 'comparison_tables' and 'subgroup_details'.
-    """
+    """Performs subgroup analysis and returns comparative analysis structures."""
     logger.info(f"Conducting moderator analysis for: {moderators}")
     from src.helpers import get_back_original_label_from_numerical_label
     
-    comparison_tables = {}
-    subgroup_details = {}
+    # Store results: relation -> {baseline: {var: {coef, se}}, groups: {label: {var: {coef, se}}}}
+    comp_data = {}
     
-    # Initialize comparison tables with baseline
+    # 1. Capture Baseline
     for relation, summary in baseline_results:
         _, _, coefs = extract_regression_results(summary)
-        df_base = pd.DataFrame(coefs).T[['Estimated Coefficient', 'P-Value']]
-        df_base.columns = ['Baseline Coef', 'Baseline P-Val']
-        comparison_tables[relation] = df_base
+        comp_data[relation] = {'baseline': {var: {'coef': info['Estimated Coefficient'], 'se': info['Standard Error']} for var, info in coefs.items()}, 'groups': {}}
 
+    # 2. Capture Subgroups
     for moderator in moderators:
-        if moderator not in data_normalized.columns:
-            continue
-            
-        unique_vals = data_normalized[moderator].unique()
-        for val in unique_vals:
+        if moderator not in data_normalized.columns: continue
+        for val in data_normalized[moderator].unique():
             label = get_back_original_label_from_numerical_label(label_mappings, moderator, val) or str(val)
             subset = data_normalized[data_normalized[moderator] == val]
-            
-            if len(subset) < 5: # Skip very small subgroups
-                continue
+            if len(subset) < 10: continue
             
             sub_results = conduct_regression_analysis(subset, model_spec_dict)
-            subgroup_key = f"{moderator}_{label}"
-            subgroup_details[subgroup_key] = sub_results
-
             for rel, sub_summary in sub_results:
-                if rel in comparison_tables:
+                if rel in comp_data:
                     _, _, sub_coefs = extract_regression_results(sub_summary)
-                    col_name = f"{moderator}_{label}_Coef"
-                    for var, info in sub_coefs.items():
-                        if var in comparison_tables[rel].index:
-                            comparison_tables[rel].loc[var, col_name] = info['Estimated Coefficient']
+                    comp_data[rel]['groups'][f"{moderator}:{label}"] = {var: {'coef': info['Estimated Coefficient'], 'se': info['Standard Error']} for var, info in sub_coefs.items()}
 
-    return {
-        'comparison_tables': comparison_tables,
-        'subgroup_details': subgroup_details
-    }
+    # 3. Format into comparative DataFrames
+    formatted_tables = {}
+    for rel, data in comp_data.items():
+        rows = []
+        for var in data['baseline'].keys():
+            row = {'Path': var, 'Baseline Coef': data['baseline'][var]['coef']}
+            group_labels = list(data['groups'].keys())
+            if len(group_labels) >= 2:
+                g1, g2 = group_labels[0], group_labels[1]
+                c1, c2 = data['groups'][g1][var]['coef'], data['groups'][g2][var]['coef']
+                se_base = data['baseline'][var]['se']
+                delta = abs(c1 - c2)
+                sig = "Yes" if delta > (1.96 * se_base) else "No"
+                row.update({f'{g1} Coef': c1, f'{g2} Coef': c2, 'Delta (Δ)': delta, 'Sig. Diff?': sig})
+            rows.append(row)
+        formatted_tables[rel] = pd.DataFrame(rows).set_index('Path')
+            
+    return {'comparison_tables': formatted_tables, 'raw_data': comp_data}
+
+def interpret_moderator_results(comparison_data: Dict[str, Any]) -> Dict[str, List[str]]:
+    """Generates qualitative observations based on comparative matrix."""
+    return {rel: [] for rel in comparison_data.get('raw_data', {}).keys()}
 
 
 

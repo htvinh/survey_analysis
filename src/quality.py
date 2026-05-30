@@ -164,25 +164,18 @@ def run_harman_single_factor_test(data: pd.DataFrame, observable_cols: List[str]
 
 
 def check_discriminant_validity(construct_aves: Dict[str, float], construct_corrs: pd.DataFrame) -> List[str]:
-    """Checks discriminant validity using the Fornell-Larcker criterion.
-    The square root of AVE for each construct should be greater than its correlation with other constructs.
-
-    Args:
-        construct_aves: Dictionary mapping construct name to its AVE value.
-        construct_corrs: Correlation matrix between constructs.
-
-    Returns:
-        List[str]: Interpretation comments.
-    """
+    """Checks discriminant validity using the Fornell-Larcker criterion."""
     results = []
     sq_root_aves = {c: np.sqrt(a) for c, a in construct_aves.items()}
+    constructs = list(sq_root_aves.keys())
     
-    for c1 in sq_root_aves:
-        for c2 in sq_root_aves:
-            if c1 != c2:
-                corr = abs(construct_corrs.loc[c1, c2])
-                if sq_root_aves[c1] < corr:
-                    results.append(f"Discriminant Validity issue: Corr({c1}, {c2}) = {corr:.3f} > Sqrt(AVE) of {c1} ({sq_root_aves[c1]:.3f})")
+    for i, c1 in enumerate(constructs):
+        for j, c2 in enumerate(constructs):
+            if i == j: continue # Bypass diagonal
+            
+            corr = abs(construct_corrs.loc[c1, c2])
+            if sq_root_aves[c1] < corr:
+                results.append(f"Discriminant Validity issue: Corr({c1}, {c2}) = {corr:.3f} > Sqrt(AVE) of {c1} ({sq_root_aves[c1]:.3f})")
     
     if not results:
         results.append("Fornell-Larcker Criterion Met: All constructs show adequate discriminant validity.")
