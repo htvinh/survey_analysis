@@ -216,10 +216,14 @@ def main():
                     data_norm, sem_m_spec, indep_dict, med_dict, dep_dict
                 )
                 
-                # Extract factor loadings (op='=~') for constructs
-                loadings_df = sem_enh[sem_enh['op'] == '=~']
+                # Extract factor loadings. Based on logs, indicators (e.g., Var_Q1) are lval, and construct is rval.
+                # All measurement relations have the construct name in 'rval'.
+                # Filter for rows where rval is one of our constructs.
+                all_constructs = {d['Variable'] for d in indep_dict} | {d['Variable'] for d in dep_dict}
+                loadings_df = sem_enh[sem_enh['rval'].isin(all_constructs)]
+                
                 construct_metrics = {}
-                for construct in {**{d['Variable']: d for d in indep_dict}, **{d['Variable']: d for d in dep_dict}}:
+                for construct in all_constructs:
                     # Convert to numeric, coerce errors to NaN and drop them
                     c_loadings = pd.to_numeric(loadings_df[loadings_df['rval'] == construct]['Est. Std'], errors='coerce').dropna().tolist()
                     cr, ave = compute_cr_ave(c_loadings)

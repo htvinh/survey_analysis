@@ -100,8 +100,6 @@ def conduct_sem_analysis(
         sem_stats = semopy.calc_stats(sem_model)
         sem_inspect = sem_model.inspect(std_est=True)
         
-        logger.info(f"SEM Inspection output:\n{sem_inspect.to_string()}")
-        
         enhanced, filtered, g_short, g_full = post_process_sem_results(
             sem_model_spec, sem_inspect, observable_dict, mediator_dict, dependent_dict
         )
