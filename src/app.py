@@ -54,6 +54,18 @@ def perform_descriptive_analysis(data: pd.DataFrame, demographic_dict: List[Dict
             else:
                 st.write(col_data.describe())
 
+def cleanup_output():
+    """Removes the output directory and its contents."""
+    output_path = get_output_path()
+    if os.path.exists(output_path):
+        for f in os.listdir(output_path):
+            file_path = os.path.join(output_path, f)
+            try:
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                logger.warning(f"Failed to remove {file_path}: {e}")
+
 def main():
     """Main function to run the Streamlit app."""
     st.set_page_config(page_title="SDA: Survey Data Analysis", layout="wide")
@@ -435,6 +447,9 @@ def main():
             except Exception as e:
                 logger.exception("Analysis failed")
                 st.error(f"An error occurred during analysis: {e}")
+            
+            finally:
+                cleanup_output()
 
 if __name__ == "__main__":
     main()
