@@ -111,8 +111,14 @@ def compute_cr_ave(loadings: List[float]) -> Tuple[float, float]:
     Returns:
         Tuple: (Composite Reliability, Average Variance Extracted).
     """
+    logger.info(f"Computing CR/AVE for loadings: {loadings}")
     loadings_arr = np.array(loadings)
-    sum_loadings_sq = np.sum(loadings_arr) ** 2
+    if len(loadings_arr) == 0:
+        logger.warning("No loadings provided for CR/AVE calculation.")
+        return 0.0, 0.0
+
+    sum_loadings = np.sum(loadings_arr)
+    sum_loadings_sq = sum_loadings ** 2
     sum_sq_loadings = np.sum(loadings_arr ** 2)
     n = len(loadings_arr)
     
@@ -125,6 +131,7 @@ def compute_cr_ave(loadings: List[float]) -> Tuple[float, float]:
     # AVE = sum(loading^2) / n
     ave = sum_sq_loadings / n if n > 0 else 0.0
     
+    logger.info(f"Calculated CR={cr:.4f}, AVE={ave:.4f}")
     return cr, ave
 
 

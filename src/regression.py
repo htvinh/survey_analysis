@@ -559,12 +559,14 @@ def interpret_moderator_results(comparison_data: Dict[str, pd.DataFrame]) -> Dic
                 sub_val = df.loc[var, col]
                 if pd.notnull(sub_val):
                     diff = sub_val - baseline_val
-                    if abs(diff) > 0.1:  # Threshold for "notable" difference
+                    logger.info(f"Checking difference for {var} in {col}: baseline={baseline_val:.3f}, sub={sub_val:.3f}, diff={diff:.3f}")
+                    if abs(diff) > 0.05:  # Lowered threshold for "notable" difference
                         direction = "stronger" if diff > 0 else "weaker"
                         # Clean column name for better report readability (remove '_Coef')
                         group_name = col.replace('_Coef', '')
                         rel_obs.append(f"- **{var}**: Effect is {direction} for {group_name} (Δ={diff:.2f}) compared to baseline.")
         
+        logger.info(f"Observations for {rel}: {rel_obs}")
         if rel_obs:
             observations[rel] = rel_obs
             
