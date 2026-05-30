@@ -1,6 +1,11 @@
 # Survey Data Analysis Tool
 
-A comprehensive application designed to analyze survey data using a defensive sequence of Regression (OLS) and Structural Equation Modeling (SEM).
+Turn survey responses into research-ready insights in minutes.
+
+Survey Data Analysis (SDA) is an AI-powered platform that guides you through the entire survey research process—from raw data to publication-grade results. Upload your dataset and model specification, and SDA automatically performs data screening, descriptive analysis, reliability and validity assessment, bias detection, Regression Analysis, Confirmatory Factor Analysis (CFA), and Structural Equation Modeling (SEM).
+
+Designed for researchers, students, consultants, and organizations, SDA helps validate theoretical models, test hypotheses, evaluate measurement quality, and uncover meaningful relationships within survey data. The result is a comprehensive report with statistical findings, visualizations, model diagnostics, and actionable insights—without requiring advanced statistical software expertise.
+
 
 ## Features
 - **Data Pipeline:** Automated cleaning, pre-processing, and categorical encoding.
