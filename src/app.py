@@ -73,8 +73,27 @@ def main():
     # Main Content
     st.title("SDA: Survey Data Analysis")
     st.markdown("""
-    Analyze survey data using **Regression** and **Structural Equation Modeling (SEM). Publication-Grade Analysis**.
+    Turn survey responses into research-ready insights in minutes. Publication-Grade Analysis**.
     """)
+
+    with st.expander("About This Application"):
+        st.markdown("""
+        **SDA** is a comprehensive Streamlit application designed to automate the analysis of survey data for academic research. It guides users through a structured workflow, from data preparation to advanced SEM analysis, while providing interpretive insights at each step.
+
+        **Key Features:**
+        - **Automated Reliability & Validity Checks:** Cronbach's Alpha, Composite Reliability, AVE, and Discriminant Validity.
+        - **OLS Regression Diagnostics:** Multi-collinearity (VIF), Residual Analysis, and Standardized Coefficients.
+        - **Structural Equation Modeling (SEM):** Simultaneous estimation of measurement and structural models with fit indices.
+        - **Multi-Group Analysis:** Automated subgroup comparisons based on demographic moderators.
+        - **Comprehensive Reporting:** Downloadable Markdown and DOCX reports summarizing all analyses and interpretations.
+
+        **Intended Users:**
+        - Academic researchers conducting survey-based studies.
+        - Graduate students learning about survey data analysis and SEM.
+        - Methodologists seeking a streamlined tool for validating measurement models.
+
+        **Disclaimer:** This tool provides automated analyses based on standard statistical methods. Users should critically evaluate results in the context of their specific research questions and theoretical frameworks.
+        """)
 
     with st.expander("Analysis Workflow Summary"):
         workflow_table = """
