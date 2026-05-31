@@ -398,7 +398,8 @@ def main():
                     st.header("Step 11: Multi-Group Moderation Analysis")
                     mga_markdown, mga_dfs = reg.generate_dynamic_multi_group_analysis(
                         data_norm, relations_config_df, demographic_config_df,
-                        indep_dict=indep_dict, dep_dict=dep_dict
+                        indep_dict=indep_dict, dep_dict=dep_dict,
+                        label_mappings=label_map
                     )
                     for df in mga_dfs:
                         st.dataframe(df, use_container_width=True)

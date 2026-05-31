@@ -565,10 +565,14 @@ def run_regression_engine(dataframe, target, features, indep_dict=None, dep_dict
         return {feature: {'coef': np.nan, 'p_val': np.nan} for feature in features}
 
 def generate_dynamic_multi_group_analysis(global_df, relations_config, demographic_config,
-                                          indep_dict=None, dep_dict=None):
+                                          indep_dict=None, dep_dict=None, label_mappings=None):
     """
     100% Dynamic, metadata-driven multi-group matrix engine.
     Ensures group columns align and appends them cleanly into wide markdown formats.
+
+    Args:
+        label_mappings: Dict from convert_categorical_columns mapping encoded codes
+                        back to original category labels for demographic columns.
 
     Returns:
         Tuple[str, List[pd.DataFrame]]: (markdown_string, list_of_dataframes)
@@ -601,22 +605,31 @@ def generate_dynamic_multi_group_analysis(global_df, relations_config, demograph
             if moderator not in global_df.columns:
                 continue
             
+            # Resolve label mapping for this moderator column
+            label_map = (label_mappings or {}).get(moderator, {})
+            has_label_map = len(label_map) > 0
+            
             # Defensive encoding: ensure string-typed moderator columns are
             # converted to integer codes so pd.to_numeric downstream doesn't
             # destroy them (handles pyarrow/AcrowDtype backends transparently)
             if pd.api.types.is_string_dtype(global_df[moderator]):
-                global_df[moderator] = pd.Categorical(global_df[moderator]).codes
+                cat = pd.Categorical(global_df[moderator])
+                global_df[moderator] = cat.codes
+                if not has_label_map:
+                    label_map = dict(enumerate(cat.categories))
+                    has_label_map = True
             
             # Extract unique response categories present in your live survey data
             unique_subgroups = global_df[moderator].dropna().unique()
             
+            # --- 2a. Build subgroup columns ---
             for group in unique_subgroups:
                 # Isolate sub-sample subset arrays
                 sliced_subgroup_df = global_df[global_df[moderator] == group]
                 
-                # Algorithmic check: Adapt threshold to small sample limitations
-                # Sets minimum boundary to 5 rows or 5% of total dataset dynamically
-                min_threshold = max(5, int(len(global_df) * 0.05))
+                # Algorithmic check: Ensure sufficient degrees of freedom for OLS
+                # min 15 rows or (predictors + intercept + 9) to keep DOF >= 9
+                min_threshold = max(15, len(predictors) + 10)
                 
                 if len(sliced_subgroup_df) < min_threshold:
                     continue  # Safely skip underrepresented strata
@@ -625,11 +638,19 @@ def generate_dynamic_multi_group_analysis(global_df, relations_config, demograph
                 subgroup_model = run_regression_engine(sliced_subgroup_df, target_var, predictors,
                                                        indep_dict, dep_dict)
                 
-                # 3. Secure Column Binding Engine (Protects against lookup errors)
-                group_clean_label = str(group).replace("[", "").replace("]", "").strip()
-                subgroup_n[f"{moderator}[{group_clean_label}]"] = len(sliced_subgroup_df)
-                coef_header = f"{moderator}[{group_clean_label}] Coef"
-                pval_header = f"{moderator}[{group_clean_label}] P-Val"
+                # Resolve original category label from encoded integer code
+                if has_label_map:
+                    try:
+                        original_label = label_map.get(int(group), str(group))
+                    except (ValueError, TypeError):
+                        original_label = str(group)
+                else:
+                    original_label = str(group)
+                clean_label = str(original_label).replace("[", "").replace("]", "").strip()
+                
+                subgroup_n[f"{moderator}[{clean_label}]"] = len(sliced_subgroup_df)
+                coef_header = f"{moderator}[{clean_label}] Coef"
+                pval_header = f"{moderator}[{clean_label}] P-Val"
                 
                 coef_values = []
                 pval_values = []
@@ -645,24 +666,21 @@ def generate_dynamic_multi_group_analysis(global_df, relations_config, demograph
                 # Commit new data vectors back directly into the tracking master frame
                 compiled_matrix_df[coef_header] = coef_values
                 compiled_matrix_df[pval_header] = pval_values
-        
-        # 4. Programmatic Delta Verification Steps (Vectorized across the full frame)
-        coef_cols = [c for c in compiled_matrix_df.columns if 'Coef' in c and 'Baseline' not in c]
-        if len(coef_cols) >= 2:
-            for i in range(len(coef_cols)):
-                for j in range(i + 1, len(coef_cols)):
-                    col_a = coef_cols[i]
-                    col_b = coef_cols[j]
-                    
-                    # Extract pure subgroup labels from string headers cleanly
-                    label_a = col_a.split(']')[0].split('[')[-1]
-                    label_b = col_b.split(']')[0].split('[')[-1]
-                    delta_col_name = f"Δ ({label_a} vs {label_b})"
-                    
-                    # Single vectorized matrix delta evaluation loop
-                    compiled_matrix_df[delta_col_name] = np.abs(
-                        compiled_matrix_df[col_a] - compiled_matrix_df[col_b]
-                    )
+            
+            # --- 2b. Per-moderator delta pairs (prevents cross-moderator mixing) ---
+            active_mod_coefs = [c for c in compiled_matrix_df.columns
+                                if c.startswith(f"{moderator}[") and "Coef" in c]
+            if len(active_mod_coefs) >= 2:
+                for i in range(len(active_mod_coefs)):
+                    for j in range(i + 1, len(active_mod_coefs)):
+                        col_a = active_mod_coefs[i]
+                        col_b = active_mod_coefs[j]
+                        label_a = col_a.split(']')[0].split('[')[-1]
+                        label_b = col_b.split(']')[0].split('[')[-1]
+                        delta_col_name = f"Δ ({moderator}: {label_a} vs {label_b})"
+                        compiled_matrix_df[delta_col_name] = np.abs(
+                            compiled_matrix_df[col_a] - compiled_matrix_df[col_b]
+                        )
 
         # 5. Append sample size observation row
         n_row = {col: '' for col in compiled_matrix_df.columns}
