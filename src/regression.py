@@ -606,8 +606,8 @@ def generate_dynamic_multi_group_analysis(global_df, relations_config, demograph
                 continue
             
             # Resolve label mapping for this moderator column
-            label_map = (label_mappings or {}).get(moderator, {})
-            has_label_map = len(label_map) > 0
+            mod_label_map = (label_mappings or {}).get(moderator, {}) if label_mappings else {}
+            has_label_map = len(mod_label_map) > 0
             
             # Defensive encoding: ensure string-typed moderator columns are
             # converted to integer codes so pd.to_numeric downstream doesn't
@@ -616,7 +616,7 @@ def generate_dynamic_multi_group_analysis(global_df, relations_config, demograph
                 cat = pd.Categorical(global_df[moderator])
                 global_df[moderator] = cat.codes
                 if not has_label_map:
-                    label_map = dict(enumerate(cat.categories))
+                    mod_label_map = dict(enumerate(cat.categories))
                     has_label_map = True
             
             # Extract unique response categories present in your live survey data
@@ -638,10 +638,12 @@ def generate_dynamic_multi_group_analysis(global_df, relations_config, demograph
                 subgroup_model = run_regression_engine(sliced_subgroup_df, target_var, predictors,
                                                        indep_dict, dep_dict)
                 
-                # Resolve original category label from encoded integer code
+                # Resolve original category label from encoded numeric code
+                # Handles numpy float/int → clean string label via label_mappings
                 if has_label_map:
                     try:
-                        original_label = label_map.get(int(group), str(group))
+                        lookup_key = int(group) if not pd.isna(group) else None
+                        original_label = mod_label_map.get(lookup_key, str(group)) if lookup_key is not None else str(group)
                     except (ValueError, TypeError):
                         original_label = str(group)
                 else:
