@@ -4,6 +4,7 @@ import os
 # Add the project root to sys.path to allow absolute imports from 'src'
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 from PIL import Image
@@ -73,10 +74,10 @@ def main():
     # Main Content
     st.title("SDA: Survey Data Analysis")
     st.markdown("""
-    Turn survey responses into research-ready insights in minutes. Publication-Grade Analysis**.
+    Turn survey responses into research-ready insights in minutes. **Publication-Grade Analysis**.
     """)
 
-    with st.expander("About This Application"):
+    with st.expander("ℹ️ About This Application"):
         st.markdown("""
         **SDA** is a comprehensive Streamlit application designed to automate the analysis of survey data for academic research. It guides users through a structured workflow, from data preparation to advanced SEM analysis, while providing interpretive insights at each step.
 
@@ -95,7 +96,7 @@ def main():
         **Disclaimer:** This tool provides automated analyses based on standard statistical methods. Users should critically evaluate results in the context of their specific research questions and theoretical frameworks.
         """)
 
-    with st.expander("Analysis Workflow Summary"):
+    with st.expander("📋 Analysis Workflow Summary"):
         workflow_table = """
 | Step | Phase | Description |
 |------|-------|-------------|
@@ -115,7 +116,7 @@ def main():
         st.markdown(workflow_table)
         st.info("**Methodological Note:** Hypothesized relationships are first examined using OLS regression for interpretable diagnostics, subsequently validated using CB-SEM to account for measurement error.")
 
-    with st.expander("Model and Data Preparation"):
+    with st.expander("⚙️ Model and Data Preparation"):
         st.markdown("""
         ### 1. Conceptual Framework: The OLS-CFA-SEM Defensive Sequence
         To satisfy diverse reviewer perspectives (traditional vs. SEM-oriented), this application follows a defensible sequence:
@@ -142,7 +143,7 @@ def main():
         3. **Diagnostics:** Checks for **Common Method Bias** via Harman's Test and **Multi-collinearity** via VIF (< 5 or < 10).
         """)
 
-    with st.expander("Advanced Interpretation Guide"):
+    with st.expander("📖 Advanced Interpretation Guide"):
         st.markdown("""
         ### 1. Reliability Assessment (Alpha vs. CR)
         - **Cronbach's Alpha:** Assumes all items contribute equally (tau-equivalence).
@@ -272,11 +273,9 @@ def main():
                 st.table(pd.DataFrame(ave_data, columns=['Construct', 'AVE', 'Result']))
                 
                 st.subheader("Discriminant Validity (Fornell-Larcker)")
-                # Need construct correlation matrix
                 latent_names = list(construct_metrics.keys())
                 construct_corrs = sem_enh[(sem_enh['op'] == '~~') & (sem_enh['lval'].isin(latent_names)) & (sem_enh['rval'].isin(latent_names)) & (sem_enh['lval'] != sem_enh['rval'])]
                 
-                # Build construct corr matrix
                 c_corr_matrix = pd.DataFrame(0.0, index=latent_names, columns=latent_names)
                 for name in latent_names:
                     c_corr_matrix.loc[name, name] = 1.0
@@ -285,7 +284,15 @@ def main():
                     val = float(row['Est. Std']) if pd.notnull(row['Est. Std']) else 0.0
                     c_corr_matrix.loc[row['lval'], row['rval']] = val
                     c_corr_matrix.loc[row['rval'], row['lval']] = val
-                
+
+                sq_root_aves = {c: np.sqrt(m['AVE']) for c, m in construct_metrics.items()}
+                fl_rows = []
+                for c1 in latent_names:
+                    max_corr = max(abs(c_corr_matrix.loc[c1, c2]) for c2 in latent_names if c2 != c1) if len(latent_names) > 1 else 0.0
+                    sqrt_ave = sq_root_aves[c1]
+                    fl_rows.append([c1, f"{sqrt_ave:.3f}", f"{max_corr:.3f}", "✅ Pass" if sqrt_ave > max_corr else "❌ Fail"])
+                st.table(pd.DataFrame(fl_rows, columns=['Construct', 'Sqrt(AVE)', 'Max |Correlation|', 'Evaluation']))
+
                 dv_results = check_discriminant_validity({c: m['AVE'] for c, m in construct_metrics.items()}, c_corr_matrix)
                 for res in dv_results:
                     st.info(res)
@@ -331,7 +338,7 @@ def main():
                 
                 reg_vif_tables = []
                 for i, (rel, msg) in enumerate(reg_interp):
-                    with st.expander(f"OLS Path: {rel}"):
+                    with st.expander(f"📊 OLS Path: {rel}"):
                         st.subheader("Diagnostics (VIF/Tolerance)")
                         vif_df = reg.calculate_collinearity_diagnostics(ols_data, rel)
                         reg_vif_tables.append(vif_df)
@@ -352,7 +359,7 @@ def main():
                 std_reg_interp, std_reg_coef_dfs, _ = reg.interpret_regression_results(std_reg_results, param_dict)
                 
                 for i, (rel, msg) in enumerate(std_reg_interp):
-                    with st.expander(f"Standardized Relationship: {rel}"):
+                    with st.expander(f"📈 Standardized Relationship: {rel}"):
                         st.markdown(msg)
                 
                 std_reg_result_graph_path = reg.create_result_graph_short(reg_m_spec, indep_dict, dep_dict, std_reg_coef_dfs, "reg_std_results_short")
@@ -386,12 +393,15 @@ def main():
                 relations_config_df = pd.DataFrame(rel_dict)
                 
                 mga_markdown = ""
+                mga_dfs = []
                 if moderators:
                     st.header("Step 11: Multi-Group Moderation Analysis")
-                    mga_markdown = reg.generate_dynamic_multi_group_analysis(
-                        data_norm, relations_config_df, demographic_config_df
+                    mga_markdown, mga_dfs = reg.generate_dynamic_multi_group_analysis(
+                        data_norm, relations_config_df, demographic_config_df,
+                        indep_dict=indep_dict, dep_dict=dep_dict
                     )
-                    st.markdown(mga_markdown)
+                    for df in mga_dfs:
+                        st.dataframe(df, use_container_width=True)
                 st.divider()
 
                 # 11. Final Report (Step 12)

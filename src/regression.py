@@ -530,25 +530,51 @@ def create_result_graph_short(
 
 
 
-def run_regression_engine(dataframe, target, features):
+def run_regression_engine(dataframe, target, features, indep_dict=None, dep_dict=None):
     """
     Executes an OLS regression and returns structured coefficients and p-values.
-    """
-    from src.common import convert_to_model_spec_dict
-    
-    # Re-use existing OLS engine logic
-    # Note: Using placeholder as provided, but integrated into existing structures
-    results = {}
-    for feature in features:
-        results[feature] = {'coef': 0.456, 'p_val': 0.001}
-    return results
 
-def generate_dynamic_multi_group_analysis(global_df, relations_config, demographic_config):
+    Builds composite scores for latent constructs from indep_dict/dep_dict,
+    then runs statsmodels OLS and extracts coef/p_val for each feature.
+    """
+    df = dataframe.copy()
+
+    # Build composite scores for latent constructs referenced in this relation
+    all_latents = [target] + features
+    for d in (indep_dict or []) + (dep_dict or []):
+        var = d.get('Variable')
+        if var in all_latents:
+            try:
+                count = int(float(d.get('number_questions', 0)))
+                indicators = [f"{var}_Q{i+1}" for i in range(count)]
+                df[var] = create_composite_score(df, indicators)
+            except (ValueError, TypeError):
+                pass
+
+    relation = f"{target} ~ {' + '.join(features)}"
+    try:
+        model = run_regression(df, relation)
+        results = {}
+        for feature in features:
+            results[feature] = {
+                'coef': model.params.get(feature, np.nan),
+                'p_val': model.pvalues.get(feature, np.nan)
+            }
+        return results
+    except Exception:
+        return {feature: {'coef': np.nan, 'p_val': np.nan} for feature in features}
+
+def generate_dynamic_multi_group_analysis(global_df, relations_config, demographic_config,
+                                          indep_dict=None, dep_dict=None):
     """
     100% Dynamic, metadata-driven multi-group matrix engine.
     Ensures group columns align and appends them cleanly into wide markdown formats.
+
+    Returns:
+        Tuple[str, List[pd.DataFrame]]: (markdown_string, list_of_dataframes)
     """
     mga_markdown_output = []
+    mga_dataframes = []
     
     # Locate all active moderators from config without mapping names explicitly
     moderator_columns = demographic_config[
@@ -564,14 +590,22 @@ def generate_dynamic_multi_group_analysis(global_df, relations_config, demograph
         compiled_matrix_df = pd.DataFrame(index=paths_index)
         
         # 1. Compute and bind Global Baseline Data Series
-        baseline_model = run_regression_engine(global_df, target_var, predictors)
+        baseline_model = run_regression_engine(global_df, target_var, predictors,
+                                               indep_dict, dep_dict)
         compiled_matrix_df['Baseline Coef'] = [baseline_model[pred]['coef'] for pred in predictors]
         compiled_matrix_df['Baseline P-Val'] = [baseline_model[pred]['p_val'] for pred in predictors]
         
         # 2. Iterate dynamically across metadata moderator features
+        subgroup_n = {}
         for moderator in moderator_columns:
             if moderator not in global_df.columns:
                 continue
+            
+            # Defensive encoding: ensure string-typed moderator columns are
+            # converted to integer codes so pd.to_numeric downstream doesn't
+            # destroy them (handles pyarrow/AcrowDtype backends transparently)
+            if pd.api.types.is_string_dtype(global_df[moderator]):
+                global_df[moderator] = pd.Categorical(global_df[moderator]).codes
             
             # Extract unique response categories present in your live survey data
             unique_subgroups = global_df[moderator].dropna().unique()
@@ -588,10 +622,12 @@ def generate_dynamic_multi_group_analysis(global_df, relations_config, demograph
                     continue  # Safely skip underrepresented strata
                 
                 # Compute subgroup parameters
-                subgroup_model = run_regression_engine(sliced_subgroup_df, target_var, predictors)
+                subgroup_model = run_regression_engine(sliced_subgroup_df, target_var, predictors,
+                                                       indep_dict, dep_dict)
                 
                 # 3. Secure Column Binding Engine (Protects against lookup errors)
                 group_clean_label = str(group).replace("[", "").replace("]", "").strip()
+                subgroup_n[f"{moderator}[{group_clean_label}]"] = len(sliced_subgroup_df)
                 coef_header = f"{moderator}[{group_clean_label}] Coef"
                 pval_header = f"{moderator}[{group_clean_label}] P-Val"
                 
@@ -628,7 +664,14 @@ def generate_dynamic_multi_group_analysis(global_df, relations_config, demograph
                         compiled_matrix_df[col_a] - compiled_matrix_df[col_b]
                     )
 
-        # 5. Compile matrix dataframe out to Markdown buffer block strings
+        # 5. Append sample size observation row
+        n_row = {col: '' for col in compiled_matrix_df.columns}
+        n_row['Baseline Coef'] = len(global_df)
+        for key, count in subgroup_n.items():
+            n_row[f"{key} Coef"] = count
+        compiled_matrix_df.loc['Observations (N)'] = pd.Series(n_row)
+
+        # 6. Compile matrix dataframe out to Markdown buffer block strings
         relation_header = f"### Subgroup Comparison Matrix: {target_var} ~ {' + '.join(predictors)}\n\n"
         markdown_table = (
             compiled_matrix_df.reset_index()
@@ -637,8 +680,12 @@ def generate_dynamic_multi_group_analysis(global_df, relations_config, demograph
         )
         
         mga_markdown_output.append(relation_header + markdown_table + "\n\n")
+        mga_dataframes.append(
+            compiled_matrix_df.reset_index()
+            .rename(columns={'index': 'Structural Path'})
+        )
         
-    return "".join(mga_markdown_output)
+    return "".join(mga_markdown_output), mga_dataframes
 
 
 

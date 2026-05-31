@@ -78,7 +78,11 @@ def create_new_directory(dir_path: str, force_clear: bool = True) -> None:
 
 
 def convert_categorical_columns(data: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Dict[int, str]]]:
-    """Converts object-type columns in a DataFrame to numerical labels.
+    """Converts non-numeric columns in a DataFrame to numerical labels.
+
+    Uses pd.to_numeric to detect which columns contain non-numeric values
+    (e.g., categorical text), and encodes them with LabelEncoder. Works with
+    both standard pandas (object dtype) and ArrowDtype (pyarrow) backends.
 
     Args:
         data: The input DataFrame.
@@ -92,7 +96,9 @@ def convert_categorical_columns(data: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[
     label_mappings = {}
     label_encoder = LabelEncoder()
     for column in df.columns:
-        if df[column].dtype == 'object':
+        try:
+            pd.to_numeric(df[column], errors='raise')
+        except (ValueError, TypeError):
             df[column] = label_encoder.fit_transform(df[column].astype(str))
             label_mappings[column] = dict(zip(
                 range(len(label_encoder.classes_)),
